@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Upload — Network Topology</title>
+<style>
+:root{--base:#faf4ed;--overlay:#f3ebe7;--surface:#fffaf6;--muted:#6b646f;--pine:#316a78;--foam:#5fb6b1;--rose:#e6b8c4}
+html,body{height:100%;margin:0;background:var(--base);font-family:Inter,system-ui,sans-serif;color:#2b2430}
+.topnav{position:fixed;left:0;right:0;top:0;padding:12px 48px 12px 20px;background:var(--overlay);display:flex;align-items:center;z-index:10;border-bottom:1px solid rgba(0,0,0,0.05)}
+.topnav a{margin-left:14px;text-decoration:none;color:var(--pine);font-weight:700}
+.container{padding:90px 20px 40px;display:flex;justify-content:center}
+.card{width:720px;background:var(--surface);padding:36px;border-radius:12px;box-shadow:0 20px 40px rgba(11,9,12,0.06)}
+h1{color:var(--rose);text-align:center;margin:0 0 18px 0}
+.form-row{display:flex;justify-content:center;margin:16px 0}
+input[type=file]{padding:8px;border-radius:8px;}
+button{background:var(--pine);color:white;border:none;padding:10px 18px;border-radius:10px;cursor:pointer;font-weight:700}
+.progress{height:14px;background:rgba(0,0,0,0.04);border-radius:12px;margin-top:18px;overflow:hidden}
+.progress > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--foam),var(--pine));border-radius:12px}
+.footer{margin-top:18px;text-align:center}
+.link{display:block;text-align:center;margin-top:14px;color:var(--pine);text-decoration:none}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div style="font-weight:700;color:var(--pine)">Network Topology Demo</div>
+  <div style="margin-left:auto">
+    <a href="/">Visualization</a>
+    <a href="/upload" style="color:var(--rose)">Upload</a>
+    <a href="/files">Files</a>
+    <a href="#" id="logout">Logout</a>
+  </div>
+</nav>
+
+<main class="container">
+  <div class="card">
+    <h1>Upload a File to the Network Server</h1>
+    <div style="text-align:center;color:var(--muted);">Files uploaded here will be logged as events so nodes appear in the visualization.</div>
+
+    <div style="display:flex;justify-content:center;margin-top:22px;">
+      <input id="fileInput" type="file" />
+    </div>
+
+    <div class="form-row">
+      <button id="uploadBtn">Upload</button>
+    </div>
+
+    <div class="progress" aria-hidden="true"><i id="bar"></i></div>
+
+    <div class="footer">
+      <a class="link" href="/">← Back to Visualization</a>
+    </div>
+  </div>
+</main>
+
+<script>
+function getClientId(){ try{ let id=localStorage.getItem('client_id'); if(!id){ id = Math.random().toString(36).slice(2,10) + '-' + Date.now().toString(36).slice(-6); localStorage.setItem('client_id', id);} return id;}catch(e){return 'anon-'+Date.now();}}
+
+const uploadBtn = document.getElementById('uploadBtn');
+const fileInput = document.getElementById('fileInput');
+const bar = document.getElementById('bar');
+
+uploadBtn.addEventListener('click', () => {
+  const f = fileInput.files[0];
+  if(!f){ alert('Choose a file first'); return; }
+  const client_id = getClientId();
+  const form = new FormData();
+  form.append('file', f);
+  form.append('client_id', client_id);
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/upload', true);
+  xhr.withCredentials = true;
+  xhr.upload.onprogress = (e) => {
+    if(e.lengthComputable){ const pct = Math.round((e.loaded / e.total) * 100); bar.style.width = pct + '%'; }
+  };
+  xhr.onload = () => {
+    if(xhr.status >= 200 && xhr.status < 300){ alert('Uploaded'); bar.style.width = '100%'; setTimeout(()=>bar.style.width='0%',600); }
+    else { alert('Upload failed: ' + xhr.statusText); }
+  };
+  xhr.onerror = () => alert('Upload error');
+  xhr.send(form);
+});
+
+document.getElementById('logout').addEventListener('click', async (e) => { e.preventDefault(); try{ await fetch('/logout', {method:'POST', credentials:'include'}); }catch{}; window.location.href='/login';});
+</script>
+</body>
+</html>
+

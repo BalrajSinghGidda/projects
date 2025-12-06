@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Login — Network Topology</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root {
+  --base:#faf4ed; --surface:#fffaf6; --overlay:#f3ebe7;
+  --muted:#6b646f; --subtle:#7f7482; --text:#2b2430;
+  --rose:#e6b8c4; --pine:#316a78; --foam:#5fb6b1; --gold:#c08a4b;
+}
+
+html, body {
+  height:100vh; margin:0; background:var(--base);
+  font-family:Inter,system-ui,sans-serif; -webkit-font-smoothing:antialiased;
+}
+
+.center {
+  height:100vh; display:flex; align-items:center; justify-content:center;
+}
+
+.card {
+  width:360px; background:var(--surface); padding:28px;
+  border-radius:14px; box-shadow:0 12px 40px rgba(18,16,20,0.09);
+  border:1px solid rgba(43,36,48,0.06);
+}
+
+h2 { margin:0 0 14px 0; color:var(--pine); font-size:22px; }
+label { display:block; margin-top:14px; font-size:13px; color:var(--subtle); }
+input[type=text], input[type=password] {
+  width:100%; padding:10px; margin-top:6px;
+  border-radius:8px; border:1px solid rgba(43,36,48,0.1);
+  background:var(--overlay); font-size:14px;
+}
+
+button {
+  margin-top:20px; width:100%; padding:12px;
+  background:var(--pine); color:var(--base);
+  border:none; border-radius:10px; font-weight:700; cursor:pointer;
+  box-shadow:0 6px 18px rgba(49,106,120,0.15); font-size:15px;
+}
+button:hover { background:var(--foam); }
+
+a {
+  display:block; margin-top:14px; text-align:center;
+  font-size:13px; color:var(--pine); text-decoration:none; font-weight:600;
+}
+</style>
+</head>
+
+<body>
+<div class="center">
+  <div class="card">
+    <h2>Welcome back</h2>
+
+    <label>Username</label>
+    <input id="username" type="text">
+
+    <label>Password</label>
+    <input id="password" type="password">
+
+    <button id="loginBtn">Log in</button>
+
+    <a href="/register">Create an account</a>
+    <a href="/">← Back to visualization</a>
+
+    <div id="err" style="margin-top:10px; font-size:13px; color:var(--rose); display:none;"></div>
+  </div>
+</div>
+
+<script>
+function err(msg){
+  const e=document.getElementById('err');
+  e.textContent=msg;
+  e.style.display='block';
+}
+
+document.getElementById('loginBtn').onclick = async () => {
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value;
+
+  if(!u || !p) return err("Please fill all fields.");
+
+  try{
+    const r = await fetch("/login", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ username:u, password:p }),
+      credentials:"include"
+    });
+    const j = await r.json();
+
+    if(j.ok){
+      // back to home
+      location.href = "/";
+    } else {
+      err("Incorrect username or password.");
+    }
+  } catch(e2){
+    err("Network error.");
+  }
+};
+</script>
+</body>
+</html>
+

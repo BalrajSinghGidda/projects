@@ -1,0 +1,11 @@
+{"ts": "2025-12-04T09:38:53.803Z", "type": "client_connected", "detail": {"ip": "dakly2-r799ae", "name": "Linux x86_64"}}
+{"ts": "2025-12-04T09:39:13.822Z", "type": "viewer_connected", "detail": {"ip": "dakly2-r799ae", "name": "Linux x86_64"}}
+{"ts": "2025-12-04T09:39:33.823Z", "type": "viewer_connected", "detail": {"ip": "dakly2-r799ae", "name": "Linux x86_64"}}
+{"ts": "2025-12-04T09:39:53.823Z", "type": "viewer_connected", "detail": {"ip": "dakly2-r799ae", "name": "Linux x86_64"}}
+{"ts": "2025-12-04T09:40:14.387Z", "type": "client_connected", "detail": {"ip": "dakly2-r799ae", "name": "Linux x86_64"}}
+{"ts": "2025-12-04T09:40:34.398Z", "type": "viewer_connected", "detail": {"ip": "dakly2-r799ae", "name": "Linux x86_64"}}
+{"ts": "2025-12-04T09:40:54.398Z", "type": "viewer_connected", "detail": {"ip": "dakly2-r799ae", "name": "Linux x86_64"}}
+{"ts": "2025-12-04T09:41:12.644Z", "type": "client_connected", "detail": {"ip": "3sz9w0-r7k56v", "name": "Linux armv81"}}
+{"ts": "2025-12-04T09:41:14.399Z", "type": "viewer_connected", "detail": {"ip": "dakly2-r799ae", "name": "Linux x86_64"}}
+{"ts": "2025-12-04T09:41:33.560Z", "type": "viewer_connected", "detail": {"ip": "3sz9w0-r7k56v", "name": "Linux armv81"}}
+{"ts": "2025-12-04T09:41:34.399Z", "type": "viewer_connected", "detail": {"ip": "dakly2-r799ae", "name": "Linux x86_64"}}

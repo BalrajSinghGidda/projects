@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Files — Network Topology</title>
+<style>
+:root{--base:#faf4ed;--overlay:#f3ebe7;--surface:#fffaf6;--muted:#6b646f;--pine:#316a78;--foam:#5fb6b1;--rose:#e6b8c4}
+html,body{height:100%;margin:0;background:var(--base);font-family:Inter,system-ui,sans-serif;color:#2b2430}
+.topnav{position:fixed;left:0;right:0;top:0;padding:12px 48px 12px 20px;background:var(--overlay);display:flex;align-items:center;z-index:10;border-bottom:1px solid rgba(0,0,0,0.05)}
+.topnav a{margin-left:14px;text-decoration:none;color:var(--pine);font-weight:700}
+.container{padding:90px 20px 40px;display:flex;justify-content:center}
+.card{width:900px;background:var(--surface);padding:24px;border-radius:12px;box-shadow:0 20px 40px rgba(11,9,12,0.06)}
+h1{color:var(--pine);text-align:left;margin:0 0 14px 0}
+.table{margin-top:12px;border-radius:8px;overflow:hidden;background:rgba(0,0,0,0.02)}
+.row{display:flex;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(0,0,0,0.03);align-items:center}
+.row:last-child{border-bottom:none}
+.filename{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:12px}
+.meta{width:180px;text-align:right;color:var(--muted);font-size:0.95rem}
+.actions{width:200px;text-align:right}
+.btn{background:var(--pine);color:white;border:none;padding:8px 10px;border-radius:8px;cursor:pointer;margin-left:8px}
+.small{color:var(--muted);font-size:0.9rem}
+.footer{margin-top:18px;text-align:center}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div style="font-weight:700;color:var(--pine)">Network Topology Demo</div>
+  <div style="margin-left:auto">
+    <a href="/">Visualization</a>
+    <a href="/upload">Upload</a>
+    <a href="/files" style="color:var(--rose)">Files</a>
+    <a href="#" id="logout">Logout</a>
+  </div>
+</nav>
+
+<main class="container">
+  <div class="card">
+    <h1>Files</h1>
+    <div id="filesArea" class="table">
+      <div style="padding:14px" class="small">Loading files…</div>
+    </div>
+
+    <div class="footer">
+      <button id="refresh" class="btn">Refresh</button>
+    </div>
+  </div>
+</main>
+
+<script>
+async function fetchJson(url, opts){ const r = await fetch(url, Object.assign({credentials:'include'}, opts||{})); if(!r.ok) throw new Error('Server: '+r.status); return r.json(); }
+
+function mkRow(file){
+  const div = document.createElement('div');
+  div.className = 'row';
+
+  const name = document.createElement('div');
+  name.className = 'filename';
+  const a = document.createElement('a');
+  a.href = '/files/' + encodeURIComponent(file.name);
+  a.textContent = file.name;
+  name.appendChild(a);
+
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.innerHTML = `${file.size_h || '?'} &nbsp; ${file.mtime_s || ''}`;
+
+  const acts = document.createElement('div');
+  acts.className = 'actions';
+
+  const dl = document.createElement('a');
+  dl.href = '/files/' + encodeURIComponent(file.name);
+  dl.className = 'btn';
+  dl.textContent = 'Download';
+
+  const tbtn = document.createElement('button');
+  tbtn.className = 'btn';
+  tbtn.textContent = 'Temp link';
+  tbtn.addEventListener('click', async ()=>{
+    tbtn.disabled = true;
+    tbtn.textContent = 'Generating…';
+    try{
+      const res = await fetchJson('/files/temp', {method:'POST', body: JSON.stringify({name: file.name, ttl: 300}), headers: {'Content-Type':'application/json'}});
+      if(res.ok && res.url){ window.open(res.url, '_blank'); tbtn.textContent = 'Opened'; }
+      else { alert('Could not create temp link'); tbtn.textContent = 'Temp link'; }
+    }catch(err){ alert('Error: '+err.message); tbtn.textContent = 'Temp link'; }
+    tbtn.disabled = false;
+  });
+
+  acts.appendChild(dl);
+  acts.appendChild(tbtn);
+
+  div.appendChild(name);
+  div.appendChild(meta);
+  div.appendChild(acts);
+  return div;
+}
+
+async function loadFiles(){
+  const area = document.getElementById('filesArea');
+  area.innerHTML = '<div style="padding:14px" class="small">Loading files…</div>';
+  try{
+    const j = await fetchJson('/files');
+    if(!j.ok){ area.innerHTML = '<div style="padding:14px" class="small">Server error</div>'; return; }
+    if(!j.files || !j.files.length){ area.innerHTML = '<div style="padding:14px" class="small">No files</div>'; return; }
+    area.innerHTML = '';
+    j.files.forEach(f => area.appendChild(mkRow(f)));
+  }catch(e){ area.innerHTML = '<div style="padding:14px" class="small">Error: '+(e.message||e)+'</div>'; }
+}
+
+document.getElementById('refresh').addEventListener('click', loadFiles);
+document.getElementById('logout').addEventListener('click', async (e) => { e.preventDefault(); try{ await fetch('/logout', {method:'POST', credentials:'include'}); }catch{}; window.location.href='/login';});
+
+loadFiles();
+</script>
+</body>
+</html>

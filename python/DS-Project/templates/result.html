@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Results — {{ name }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#071029; --card:#0b1320; --muted:#9aa6bf; --accent:#06b6d4; --text:#e6edf3;
+    }
+    body{font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--text); padding:28px; margin:0;}
+    h2{margin:0 0 12px;}
+    .wrap{display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap;}
+    .col{background:var(--card); padding:14px; border-radius:10px; width:300px; box-sizing:border-box;}
+    .col h4{margin:0 0 8px;}
+    img{border-radius:6px; max-width:100%; display:block; background:#ffffff;}
+    .meta{font-size:13px; color:var(--muted); margin-top:8px;}
+    .btn{display:inline-block; padding:8px 12px; background:var(--accent); border-radius:8px; color:#012; text-decoration:none; margin-top:8px;}
+    .small{font-size:13px; color:var(--muted);}
+    .row-stats{margin-top:10px;}
+  </style>
+</head>
+<body>
+  <h2>Results — {{ name }}</h2>
+
+  <div class="wrap">
+    <div class="col">
+      <h4>Original</h4>
+      <img src="/file/{{ orig }}" alt="original">
+      <div class="meta">Filename: {{ orig_name }}<br>Size: {{ orig_size }} bytes</div>
+    </div>
+
+    <div class="col">
+      <h4>Reconstructed</h4>
+      <img src="/file/{{ recon }}" alt="reconstructed">
+      <div class="meta">Filename: {{ recon_name }}<br>Size: {{ recon_size }} bytes</div>
+    </div>
+
+    <div class="col">
+      <h4>Sparsity heatmap</h4>
+      <img src="/file/{{ sparsity }}" alt="sparsity">
+      <div class="meta row-stats">Nonzeros: {{ nonzeros }} / {{ total_pixels }}<br>Compression ratio: {{ ratio }}</div>
+
+      <div style="margin-top:10px;">
+        <a class="btn" href="/file/{{ compfile }}">Download compressed</a>
+        <a class="btn" href="/">Compress another</a>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
+

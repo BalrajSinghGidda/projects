@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Network Topology — Live Viewer</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+  :root{
+    --bg: #0b0f14; --panel: #0f1720; --muted: #9aa7b2; --accent: #4dd0e1;
+    --good: #6be26b; --warn: #ffd166; --bad: #ff6b6b; --glass: rgba(255,255,255,0.02);
+  }
+  html,body{ height:100%; margin:0; font-family: Inter, system-ui, Roboto, Arial; background:var(--bg); color:#e6eef3; }
+  .app { display: grid; grid-template-columns: 1fr 340px; grid-gap: 12px; height: 100vh; padding: 14px; box-sizing: border-box; }
+  .canvas { background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent); border-radius: 12px; padding: 12px; position: relative; overflow: hidden; box-shadow: 0 6px 30px rgba(0,0,0,0.6); }
+  header { display:flex; gap:12px; align-items:center; margin-bottom:8px; }
+  h1 { margin:0; font-size:18px; letter-spacing:0.2px; }
+  .sub { color:var(--muted); font-size:12px; }
+  svg { width:100%; height: calc(100% - 56px); display:block; }
+  .panel { background:var(--panel); border-radius:12px; padding:12px; box-shadow: 0 6px 20px rgba(0,0,0,0.6); display:flex; flex-direction:column; gap:8px; }
+  .stat { display:flex; justify-content:space-between; align-items:center; padding:8px; border-radius:8px; background:var(--glass); font-size:13px; }
+  .legend { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; font-size:13px; color:var(--muted); }
+  .legend .item { display:inline-flex; gap:6px; align-items:center; }
+  .dot { width:12px; height:12px; border-radius:50%; }
+  #log { overflow:auto; background:rgba(255,255,255,0.02); padding:8px; border-radius:8px; height:420px; font-family:monospace; font-size:12px; color:#cfeff3; }
+  .evtline { padding:6px; border-bottom:1px solid rgba(255,255,255,0.02); display:flex; gap:8px; align-items:flex-start; }
+  .evttype { min-width:86px; color:var(--muted); font-weight:700; font-size:12px; }
+  .evtmsg { color:#d4f0f7; font-size:12px; }
+  .node-label { pointer-events: none; font-size:11px; fill:#05131a; font-weight:600; }
+  .node-circle { stroke: rgba(0,0,0,0.35); stroke-width:1.6px; }
+  .state-idle { fill: #9fb8c6; }
+  .state-connected { fill: var(--accent); }
+  .state-transferring { fill: var(--warn); filter: drop-shadow(0 6px 12px rgba(255,200,80,0.08)); }
+  .state-error { fill: var(--bad); }
+  @keyframes pulse { 0% { r: 8; opacity: 1; transform: scale(1); } 50% { r: 14; opacity: 0.6; transform: scale(1.15); } 100% { r: 8; opacity: 1; transform: scale(1); } }
+  .pulsing { animation: pulse 1s ease-in-out infinite; transform-origin:center; }
+  .tooltip { position: absolute; background: rgba(6,10,12,0.88); border-radius:8px; padding:8px 10px; font-size:12px; color:#bfeff3; pointer-events:none; box-shadow:0 6px 30px rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.03); z-index: 40; }
+  .controls { display:flex; gap:8px; margin-top:8px; }
+  button { background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--muted); padding:6px 8px; border-radius:8px; cursor:pointer; }
+  footer { position:absolute; left:14px; bottom:14px; color:var(--muted); font-size:12px; }
+  /* link animation */
+  .link-active { stroke: url(#gradActive); stroke-width: 3; opacity: 0.95; filter: drop-shadow(0 6px 16px rgba(255,200,80,0.06)); }
+  .link-fade { stroke: rgba(255,255,255,0.04); stroke-width: 1; opacity: 0.4; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="canvas">
+    <header>
+      <div><h1>Network Topology — Live</h1><div class="sub">Nodes = devices · Events from server → realtime</div></div>
+      <div style="flex:1"></div>
+      <div style="text-align:right"><div style="font-size:13px; color:var(--muted)">Status</div><div id="conn_status" style="font-weight:700; color:var(--accent)">connected</div></div>
+    </header>
+    <svg id="viz"></svg>
+    <div class="tooltip" id="tooltip" style="display:none"></div>
+    <footer>Live demo · viewer</footer>
+  </div>
+
+  <div class="panel">
+    <div class="stat">
+      <div><div style="font-size:13px; color:var(--muted)">Nodes</div><div id="node_count" style="font-weight:700; font-size:16px">0</div></div>
+      <div style="text-align:right;"><div style="font-size:13px; color:var(--muted)">Events</div><div id="event_count" style="font-weight:700; font-size:16px">0</div></div>
+    </div>
+
+    <div class="legend">
+      <div class="item"><span class="dot" style="background:var(--accent)"></span> Connected</div>
+      <div class="item"><span class="dot" style="background:var(--warn)"></span> Transferring</div>
+      <div class="item"><span class="dot" style="background:var(--good)"></span> Idle</div>
+      <div class="item"><span class="dot" style="background:var(--bad)"></span> Error</div>
+    </div>
+
+    <div class="controls">
+      <button id="center">Center</button>
+      <button id="clear">Clear nodes</button>
+      <button id="pause">Pause events</button>
+    </div>
+
+    <h3 style="margin:8px 0 4px 0; color:var(--muted); font-size:13px">Event Log</h3>
+    <div id="log"></div>
+  </div>
+</div>
+
+<script>
+const svg = d3.select('#viz');
+const width = document.getElementById('viz').clientWidth || 1000;
+const height = Math.max(420, window.innerHeight - 140);
+svg.attr('viewBox', `0 0 ${width} ${height}`);
+
+// gradient for active link
+const defs = svg.append('defs');
+const grad = defs.append('linearGradient').attr('id','gradActive').attr('x1','0%').attr('y1','0%').attr('x2','100%').attr('y2','0%');
+grad.append('stop').attr('offset','0%').attr('stop-color','#ffd166');
+grad.append('stop').attr('offset','100%').attr('stop-color','#ff6b6b');
+
+let nodes = [];
+let nodesMap = new Map();
+let links = [];
+let activeTransferLinks = new Map(); // id -> {id, sourceId, targetId, ttl}
+
+const simulation = d3.forceSimulation(nodes)
+  .force('charge', d3.forceManyBody().strength(-150))
+  .force('center', d3.forceCenter(width/2, height/2))
+  .force('collide', d3.forceCollide().radius(d => nodeRadius(d) + 8))
+  .force('link', d3.forceLink(links).id(d => d.id).distance(120).strength(0.25));
+
+const linkG = svg.append('g').attr('class','links');
+const nodeG = svg.append('g').attr('class','nodes');
+
+function nodeRadius(d){ if (d.state==='transferring') return 14; if (d.state==='connected') return 11; if (d.state==='error') return 12; return 9; }
+
+function redraw(){
+  // links
+  const linkSel = linkG.selectAll('line').data(links, d => d.id);
+  linkSel.join(
+    enter => enter.append('line').attr('class','link-fade'),
+    update => update,
+    exit => exit.remove()
+  );
+
+  // nodes
+  const nodeSel = nodeG.selectAll('g.node').data(nodes, d => d.id);
+  const nodeEnter = nodeSel.enter().append('g').attr('class','node')
+    .call(d3.drag().on('start',(e,d)=>{ if(!e.active) simulation.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; }).on('drag',(e,d)=>{ d.fx=e.x; d.fy=e.y; }).on('end',(e,d)=>{ if(!e.active) simulation.alphaTarget(0); d.fx=null; d.fy=null; }))
+    .on('mouseover',(e,d)=>showTooltip(e,d)).on('mousemove',moveTooltip).on('mouseout',hideTooltip).on('click',d=>pinNode(d));
+  nodeEnter.append('circle').attr('class','node-circle').attr('r', d=>nodeRadius(d));
+  nodeEnter.append('text').attr('class','node-label').attr('dy',4).attr('text-anchor','middle').text(d=>d.id);
+
+  nodeSel.merge(nodeEnter).select('circle')
+    .attr('r', d => nodeRadius(d))
+    .attr('class', d => {
+      let c='node-circle ';
+      if (d.state==='transferring') c += 'state-transferring pulsing';
+      else if (d.state==='connected') c += 'state-connected';
+      else if (d.state==='error') c += 'state-error';
+      else c += 'state-idle';
+      return c;
+    });
+
+  nodeSel.merge(nodeEnter).select('text').text(d=>d.id);
+  nodeSel.exit().remove();
+
+  simulation.nodes(nodes).on('tick', ()=> {
+    linkG.selectAll('line').attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+    nodeG.selectAll('g.node').attr('transform', d=>`translate(${d.x},${d.y})`);
+  });
+
+  simulation.force('link').links(links);
+  simulation.alpha(0.6).restart();
+
+  document.getElementById('node_count').textContent = nodes.length;
+}
+
+// tooltip and log helpers
+function showTooltip(event,d){ const tt = document.getElementById('tooltip'); tt.style.display='block'; tt.innerHTML = `<div style="font-weight:700">${d.id}</div><div style="color:var(--muted);font-size:12px">state: ${d.state}</div><div style="color:var(--muted);font-size:12px">last: ${d.lastEvent||'-'}</div>`; moveTooltip(event); }
+function moveTooltip(event){ const tt=document.getElementById('tooltip'); const pad=12; tt.style.left=Math.min(window.innerWidth-240,event.clientX+pad)+'px'; tt.style.top=Math.min(window.innerHeight-140,event.clientY+pad)+'px'; }
+function hideTooltip(){ document.getElementById('tooltip').style.display='none'; }
+let eventCounter = 0;
+function pushLog(type, detail){ eventCounter++; document.getElementById('event_count').textContent=eventCounter; const log=document.getElementById('log'); const div=document.createElement('div'); div.className='evtline'; const t=document.createElement('div'); t.className='evttype'; t.textContent=type; const m=document.createElement('div'); m.className='evtmsg'; m.textContent=JSON.stringify(detail); div.appendChild(t); div.appendChild(m); log.insertBefore(div, log.firstChild); if(log.children.length>400) log.removeChild(log.lastChild); }
+
+// node management
+function upsertNode(ip){
+  if(!ip) return null;
+  if(nodesMap.has(ip)) return nodesMap.get(ip);
+  const node = { id: ip, ip: ip, state:'connected', lastEvent: isoNow(), lastEventTs: Date.now() };
+  nodes.push(node); nodesMap.set(ip,node);
+  if(nodes.length>1){ const target = nodes[Math.floor(Math.random()*(nodes.length-1))]; links.push({ id:`link-${node.id}-${target.id}`, source: node, target: target }); }
+  redraw(); return node;
+}
+function removeNode(ip){ const node = nodesMap.get(ip); if(!node) return; nodes = nodes.filter(n=>n.id!==ip); nodesMap.delete(ip); links = links.filter(l=>l.source.id!==ip && l.target.id!==ip); redraw(); }
+function setNodeState(ip, state, extra){ const node = upsertNode(ip); if(!node) return; node.state=state; node.lastEvent = extra && extra.file ? `${extra.file}` : isoNow(); node.lastEventTs = Date.now(); redraw(); }
+function isoNow(){ return new Date().toISOString(); }
+
+function handleEventObj(obj){
+  const t = obj.type; const d = obj.detail || {}; const ip = d.ip || d.client || null;
+  pushLog(t,d);
+  switch(t){
+    case 'client_connected': upsertNode(ip); setNodeState(ip,'connected',d); break;
+    case 'client_disconnected': if(nodesMap.has(ip)) setNodeState(ip,'idle',d); break;
+    case 'put_start':
+    case 'get_start':
+      setNodeState(ip,'transferring',d);
+      addTransferLink('SERVER', ip, obj);
+      break;
+    case 'put_done':
+    case 'get_done':
+      setNodeState(ip,'connected',d);
+      removeTransferLink('SERVER', ip);
+      break;
+    case 'error': if(ip) setNodeState(ip,'error',d); pushLog('ERROR',d); break;
+    default: pushLog('unhandled',obj);
+  }
+}
+
+// --- transfer link helpers ---
+function linkId(a,b){ return `xfer-${a}-${b}`; }
+
+function addTransferLink(serverId, clientId, obj){
+  // ensure server node exists
+  upsertNode(serverId);
+  // create link id
+  const id = linkId(serverId, clientId);
+  if(activeTransferLinks.has(id)) {
+    // refresh ttl
+    activeTransferLinks.get(id).ttl = Date.now() + 9000;
+    return;
+  }
+  // add nodes if needed
+  const s = nodesMap.get(serverId);
+  const t = upsertNode(clientId);
+  // add a visible active link between server and client
+  const linkObj = { id: id, source: s, target: t, active: true };
+  links.push(linkObj);
+  activeTransferLinks.set(id, { id:id, sourceId:serverId, targetId:clientId, expires: Date.now() + 9000 });
+  // immediate style update
+  redraw();
+  // style the link as active (apply class)
+  setTimeout(()=> { linkG.selectAll('line').filter(d=>d.id===id).classed('link-active', true).classed('link-fade', false); }, 20);
+}
+
+function removeTransferLink(serverId, clientId){
+  const id = linkId(serverId, clientId);
+  if(!activeTransferLinks.has(id)) return;
+  activeTransferLinks.delete(id);
+  // remove link object from links array
+  links = links.filter(l => l.id !== id);
+  // redraw will remove the visual link
+  redraw();
+}
+
+// periodically expire transfer links (in case done isn't received)
+setInterval(()=>{
+  const now = Date.now();
+  let changed = false;
+  for(const [id,obj] of Array.from(activeTransferLinks.entries())){
+    if(obj.expires <= now){
+      activeTransferLinks.delete(id);
+      links = links.filter(l => l.id !== id);
+      changed = true;
+    }
+  }
+  if(changed) redraw();
+}, 1500);
+
+// SSE hookup
+let paused = false;
+const es = new EventSource('/events');
+es.onopen = ()=>{ setConnStatus(true); pushLog('sse','connected'); };
+es.onmessage = e => {
+  if(paused) return;
+  try {
+    const obj = JSON.parse(e.data);
+    if(typeof obj.detail === 'string') { try { obj.detail = JSON.parse(obj.detail); } catch(_){} }
+    handleEventObj(obj);
+  } catch(err){
+    pushLog('raw', e.data);
+  }
+};
+es.onerror = err => { setConnStatus(false); pushLog('sse_error', (err && err.message) ? err.message : 'connection lost'); };
+
+function setConnStatus(connected){ const cs = document.getElementById('conn_status'); cs.textContent = connected ? 'connected' : 'disconnected (reconnecting...)'; cs.style.color = connected ? 'var(--accent)' : 'var(--warn)'; }
+
+// controls
+document.getElementById('center').onclick = ()=> simulation.alpha(0.9).restart();
+document.getElementById('clear').onclick = ()=>{ nodes=[]; nodesMap.clear(); links=[]; activeTransferLinks.clear(); eventCounter=0; document.getElementById('event_count').textContent=0; redraw(); };
+document.getElementById('pause').onclick = function(){ paused=!paused; this.textContent = paused ? 'Resume' : 'Pause events'; };
+
+// pin node
+let pinned = null;
+function pinNode(d){ if(pinned && pinned.id===d.id){ pinned=null; d.fx=null; d.fy=null; return; } pinned=d; d.fx=width/2; d.fy=100; simulation.alpha(0.9).restart(); }
+
+// periodic state decay
+setInterval(()=>{
+  const now = Date.now(); let changed=false;
+  nodes.forEach(n=>{
+    if(n.state==='transferring' && now - n.lastEventTs > 8000){ n.state='connected'; changed=true; }
+    if(n.state==='error' && now - n.lastEventTs > 30000){ n.state='connected'; changed=true; }
+  });
+  if(changed) redraw();
+}, 3000);
+
+// seed server node
+upsertNode('SERVER');
+redraw();
+</script>
+</body>
+</html>
+

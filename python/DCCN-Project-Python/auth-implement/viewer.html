@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Network Topology — Live Viewer</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  /* Rose-pine Dawn (light) - palette */
+  :root {
+    --base: #faf4ed; --surface:#fffaf6; --overlay:#f3ebe7;
+    --muted:#6b646f; --subtle:#7f7482; --text:#2b2430;
+    --love:#b4637a; --gold:#c08a4b; --rose:#e6b8c4;
+    --pine:#316a78; --foam:#5fb6b1; --iris:#8a6fd1; --glass: rgba(43,36,48,0.04);
+  }
+
+  /* disable page-level scroll; panels scroll internally */
+  html, body { height:100vh; margin:0; overflow:hidden; scrollbar-gutter: stable; }
+  body { font-family:Inter,system-ui,sans-serif; background:var(--base); color:var(--text); -webkit-font-smoothing:antialiased; }
+
+  /* NAVBAR (fixed, safe padding on right) */
+  .topnav {
+    position: fixed; top:0; left:0; right:0;
+    box-sizing: border-box;
+    padding: 12px 48px 12px 20px;
+    display:flex; align-items:center; gap:12px; justify-content:space-between;
+    background:var(--overlay); z-index:9999;
+    border-bottom:1px solid rgba(43,36,48,0.06);
+    white-space:nowrap;
+  }
+  .nav-links{ display:flex; gap:14px; margin-left:auto; padding-right:12px; }
+  .topnav a{ text-decoration:none; color:var(--pine); font-weight:600; padding:6px 4px; }
+  .topnav a.active{ color:var(--rose); }
+
+  .app { display:grid; grid-template-columns: 1fr 360px; gap:12px; height: calc(100vh - 72px); padding: 86px 14px 14px 14px; box-sizing:border-box; }
+  .canvas { background:var(--surface); border-radius:12px; padding:12px; overflow:hidden; box-shadow:0 6px 20px rgba(18,16,20,0.04); display:flex; flex-direction:column; }
+  header h1 { margin:0; font-size:18px; color:var(--pine); }
+  header .sub { color:var(--subtle); font-size:12px; }
+  #viz { flex:1 1 auto; width:100%; height:100%; display:block; }
+
+  .panel { background:var(--surface); border-radius:12px; padding:12px; box-shadow:0 6px 20px rgba(18,16,20,0.04); display:flex; flex-direction:column; gap:8px; max-height: calc(100vh - 120px); overflow:hidden; }
+  #log { overflow:auto; max-height: 220px; padding-right:6px; font-family: monospace; font-size:13px; color:var(--text); }
+
+  .stat { display:flex; justify-content:space-between; align-items:center; padding:8px; border-radius:8px; background:var(--overlay); font-size:13px; color:var(--text); }
+  .legend .item { color:var(--subtle); font-size:13px; margin-top:6px; }
+  .dot { width:12px; height:12px; border-radius:50%; display:inline-block; margin-right:8px; vertical-align:middle; }
+  .state-connected { fill: var(--foam); }
+  .state-transferring { fill: var(--gold); }
+  .state-idle { fill: var(--muted); }
+  .state-error { fill: var(--love); }
+  .link-active { stroke: var(--rose); stroke-width:3; opacity:0.95; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.06)); }
+  .link-fade { stroke: var(--overlay); stroke-width:1; opacity:0.6; }
+  footer { color:var(--subtle); font-size:12px; }
+  button { background:var(--pine); color:var(--base); border:none; padding:6px 10px; border-radius:8px; cursor:pointer; font-weight:700; }
+  button:hover { background:var(--foam); }
+
+  /* devices list */
+  .devices { overflow:auto; max-height:240px; padding-right:6px; }
+  .device-row { display:flex; justify-content:space-between; align-items:center; padding:8px; border-radius:8px; margin-bottom:6px; background:rgba(0,0,0,0.01); }
+  .device-meta { display:flex; gap:8px; align-items:center; }
+  .device-name { font-weight:700; color:var(--pine); }
+  .device-id { font-size:12px; color:var(--subtle); }
+
+  @media (max-width:1000px){ .app{ grid-template-columns: 1fr; padding:100px 12px 12px 12px; } .panel{ max-height: calc(50vh); overflow:auto; } }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div style="color:var(--pine); font-weight:700;">Network Topology Demo</div>
+  <div class="nav-links">
+    <a href="/" class="active">Visualization</a>
+    <a href="/upload">Upload</a>
+    <a href="/files">Files</a>
+    <a href="/logout" id="logoutLink">Logout</a>
+  </div>
+</nav>
+
+<div class="app">
+  <div class="canvas">
+    <header style="display:flex; align-items:flex-start; gap:12px;">
+      <div style="flex:1"><h1>Network Topology — Live</h1><div class="sub">Nodes = devices · Events from server → realtime</div></div>
+      <div style="text-align:right"><div style="font-size:13px; color:var(--muted)">Status</div><div id="conn_status" style="font-weight:700; color:var(--pine)">connecting</div></div>
+    </header>
+
+    <svg id="viz" preserveAspectRatio="xMidYMid meet"></svg>
+
+    <footer style="margin-top:8px">Live demo · viewer</footer>
+  </div>
+
+  <div class="panel">
+    <div class="stat">
+      <div><div style="font-size:13px; color:var(--muted)">Nodes</div><div id="node_count" style="font-weight:700; font-size:16px">0</div></div>
+      <div style="text-align:right;"><div style="font-size:13px; color:var(--muted)">Events</div><div id="event_count" style="font-weight:700; font-size:16px">0</div></div>
+    </div>
+
+    <div style="display:flex; gap:8px;">
+      <button id="center">Center</button>
+      <button id="clear">Clear nodes</button>
+      <button id="pause">Pause events</button>
+    </div>
+
+    <h3 style="margin:8px 0 4px 0; color:var(--subtle); font-size:13px">Devices (your account)</h3>
+    <div class="devices" id="devicesList">
+      <!-- devices will be inserted here -->
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <button id="refreshDevices">Refresh</button>
+      <button id="registerDevice">Register this device</button>
+    </div>
+
+    <h3 style="margin:8px 0 4px 0; color:var(--subtle); font-size:13px">Event Log</h3>
+    <div id="log" role="log" aria-live="polite"></div>
+  </div>
+</div>
+
+<script>
+/* ---------------------------
+   Utilities & client id
+   --------------------------- */
+function generateClientId(){ const r=Math.random().toString(36).slice(2,8); const t=Date.now().toString(36).slice(-6); return r+'-'+t; }
+function getClientId(){ try{ let id=localStorage.getItem('client_id'); if(!id){ id=generateClientId(); localStorage.setItem('client_id', id);} return id;}catch(e){return generateClientId();}}
+const CLIENT_ID = getClientId();
+
+function apiFetch(url, opts){
+  opts = opts || {};
+  opts.credentials = 'include'; // send cookies
+  return fetch(url, opts).then(async r => {
+    const ct = r.headers.get('content-type') || '';
+    if(!r.ok){
+      // try to parse JSON error
+      try { const j = await r.json(); throw j; } catch(e){ throw { ok:false, status:r.status }; }
+    }
+    if(ct.includes('application/json')) return r.json();
+    return r.text();
+  });
+}
+
+function sendLog(eventObj){
+  // send to /log_event endpoint (no need for beacon here; we want JSON)
+  fetch('/log_event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(eventObj), keepalive:true }).catch(()=>{});
+}
+
+/* ---------------------------
+   Auth guard (Option A)
+   --------------------------- */
+async function checkAuthOrRedirect(){
+  try {
+    const info = await apiFetch('/me', { method:'GET' });
+    // expected { ok:true, user_id, username }
+    if(!info || !info.ok){
+      window.location.href = '/login';
+      return null;
+    }
+    // store username if needed
+    window.__USER = info;
+    return info;
+  } catch(e){
+    // any error -> redirect to login
+    window.location.href = '/login';
+    return null;
+  }
+}
+
+/* ---------------------------
+   Visualization (D3)
+   --------------------------- */
+const svgEl = document.getElementById('viz');
+
+function getVizSize(){ const r = svgEl.getBoundingClientRect(); return { width: Math.max(400, r.width), height: Math.max(300, r.height) }; }
+
+let viz = null;
+function initViz(){
+  const {width, height} = getVizSize();
+  svgEl.innerHTML = '';
+  const svg = d3.select(svgEl).attr('viewBox', `0 0 ${width} ${height}`);
+  const defs = svg.append('defs');
+  const grad = defs.append('linearGradient').attr('id','gradActive').attr('x1','0%').attr('x2','100%');
+  grad.append('stop').attr('offset','0%').attr('stop-color','#ffd166');
+  grad.append('stop').attr('offset','100%').attr('stop-color','#ff6b6b');
+
+  let nodes = [];
+  let nodesMap = new Map();
+  let links = [];
+  let activeTransfer = new Set();
+
+  const simulation = d3.forceSimulation(nodes)
+    .force('charge', d3.forceManyBody().strength(-140))
+    .force('center', d3.forceCenter(width/2, height/2))
+    .force('collide', d3.forceCollide().radius(16))
+    .force('link', d3.forceLink(links).id(d=>d.id).distance(130).strength(0.25));
+
+  const linkG = svg.append('g').attr('class','links');
+  const nodeG = svg.append('g').attr('class','nodes');
+
+  function nodeRadius(d){ if(d.state==='transferring') return 14; if(d.state==='connected') return 11; if(d.state==='error') return 12; return 9; }
+
+  function redraw(){
+    // links
+    const linkSel = linkG.selectAll('line').data(links, d => d.id);
+    linkSel.join(
+      enter => enter.append('line').attr('class','link-fade'),
+      update => update,
+      exit => exit.remove()
+    );
+
+    // nodes
+    const nodeSel = nodeG.selectAll('g.node').data(nodes, d => d.id);
+    const nodeEnter = nodeSel.enter().append('g').attr('class','node')
+      .call(d3.drag().on('start',(e,d)=>{ if(!e.active) simulation.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; }).on('drag',(e,d)=>{ d.fx=e.x; d.fy=e.y; }).on('end',(e,d)=>{ if(!e.active) simulation.alphaTarget(0); d.fx=null; d.fy=null; }));
+
+    nodeEnter.append('circle').attr('r', d => nodeRadius(d));
+    nodeEnter.append('text').attr('dy',4).attr('text-anchor','middle').text(d => d.label || d.id);
+
+    nodeSel.merge(nodeEnter).select('circle')
+      .attr('r', d => nodeRadius(d))
+      .attr('class', d => {
+        let c = 'node-circle ';
+        if (d.state==='transferring') c += 'state-transferring';
+        else if (d.state==='connected') c += 'state-connected';
+        else if (d.state==='error') c += 'state-error';
+        else c += 'state-idle';
+        return c;
+      });
+
+    nodeSel.merge(nodeEnter).select('text').text(d=>d.label || d.id);
+    nodeSel.exit().remove();
+
+    simulation.nodes(nodes).on('tick', ()=> {
+      linkG.selectAll('line').attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+      nodeG.selectAll('g.node').attr('transform', d=>`translate(${d.x},${d.y})`);
+    });
+
+    simulation.force('link').links(links);
+    simulation.alpha(0.6).restart();
+
+    document.getElementById('node_count').textContent = nodes.length;
+  }
+
+  function upsertNode(id, label){
+    if(!id) return null;
+    if(nodesMap.has(id)) {
+      const n = nodesMap.get(id);
+      if(label) n.label = label;
+      return n;
+    }
+    const node = { id: id, label: label || id, state:'connected', lastEventTs: Date.now() };
+    nodes.push(node);
+    nodesMap.set(id, node);
+    // link to an existing node for visual structure (prefill)
+    if(nodes.length>1){
+      const idx = Math.floor(Math.random() * (nodes.length - 1));
+      const target = nodes[idx];
+      links.push({ id:`link-${node.id}-${target.id}`, source: node, target: target });
+    }
+    redraw();
+    return node;
+  }
+
+  function setNodeState(id, state, extra){
+    const node = upsertNode(id);
+    if(!node) return;
+    node.state = state;
+    node.lastEventTs = Date.now();
+    redraw();
+  }
+
+  function addTransferLink(a,b){
+    const id = `xfer-${a}-${b}`;
+    if(activeTransfer.has(id)) return;
+    activeTransfer.add(id);
+    const s = upsertNode(a);
+    const t = upsertNode(b);
+    links.push({ id:id, source: s, target: t, active:true });
+    redraw();
+  }
+
+  function removeTransferLink(a,b){
+    const id = `xfer-${a}-${b}`;
+    if(!activeTransfer.has(id)) return;
+    activeTransfer.delete(id);
+    links = links.filter(l => l.id !== id);
+    redraw();
+  }
+
+  // expire transfer links if stuck
+  setInterval(()=>{
+    const now = Date.now();
+    let changed = false;
+    nodes.forEach(n => {
+      if(n.state === 'transferring' && now - n.lastEventTs > 9000){
+        n.state = 'connected'; changed = true;
+      }
+    });
+    if(changed) redraw();
+  }, 3000);
+
+  viz = { upsertNode, setNodeState, addTransferLink, removeTransferLink, redraw };
+  upsertNode('SERVER', 'SERVER'); redraw();
+}
+
+// init & resize handling
+initViz();
+window.addEventListener('resize', () => { initViz(); });
+
+/* ---------------------------
+   SSE hookup & event handling
+   --------------------------- */
+let eventCounter = 0;
+function pushLog(type, detail){
+  eventCounter++;
+  document.getElementById('event_count').textContent = eventCounter;
+  const log = document.getElementById('log');
+  const div = document.createElement('div'); div.textContent = type + ' ' + JSON.stringify(detail);
+  log.insertBefore(div, log.firstChild);
+  if(log.children.length > 400) log.removeChild(log.lastChild);
+}
+
+const es = new EventSource('/events');
+es.onopen = () => { setConnStatus(true); pushLog('sse','connected'); };
+// handle messages
+es.onmessage = (e) => {
+  try {
+    const obj = JSON.parse(e.data);
+    const t = obj.type; const d = obj.detail || {}; const ip = d.ip || null;
+    pushLog(t, d);
+    switch(t){
+      case 'client_connected':
+        viz.upsertNode(ip || d.client_id, d.name || d.device || d.label);
+        viz.setNodeState(ip || d.client_id, 'connected');
+        break;
+      case 'client_disconnected':
+        viz.setNodeState(ip || d.client_id, 'idle');
+        break;
+      case 'put_start':
+        viz.setNodeState(d.ip || d.client_id,'transferring',d);
+        viz.addTransferLink('SERVER', d.ip || d.client_id);
+        break;
+      case 'put_done':
+        viz.setNodeState(d.ip || d.client_id,'connected',d);
+        viz.removeTransferLink('SERVER', d.ip || d.client_id);
+        break;
+      case 'get_start':
+        viz.setNodeState(d.ip || d.client_id,'transferring',d);
+        viz.addTransferLink(d.ip || d.client_id, 'SERVER');
+        break;
+      case 'get_done':
+        viz.setNodeState(d.ip || d.client_id,'connected',d);
+        viz.removeTransferLink(d.ip || d.client_id, 'SERVER');
+        break;
+      default:
+        // accept generic "hello" or "viewer_connected" too
+        if(t === 'hello' || t === 'viewer_connected'){
+          const id = d.ip || d.client_id || d.id;
+          viz.upsertNode(id, d.name || d.device || d.label);
+          viz.setNodeState(id, 'connected');
+        }
+        break;
+    }
+  } catch(err){
+    pushLog('parse_error', e.data);
+  }
+};
+es.onerror = () => { setConnStatus(false); pushLog('sse_error','connection lost'); };
+
+function setConnStatus(connected){
+  const cs = document.getElementById('conn_status');
+  cs.textContent = connected ? 'connected' : 'disconnected';
+  cs.style.color = connected ? 'var(--pine)' : 'var(--gold)';
+}
+
+/* ---------------------------
+   UI controls
+   --------------------------- */
+document.getElementById('center').onclick = () => { initViz(); };
+document.getElementById('clear').onclick = () => { location.reload(); };
+document.getElementById('pause').onclick = function(){ this._p = !this._p; this.textContent = this._p ? 'Resume events' : 'Pause events'; };
+
+/* ---------------------------
+   Devices panel & registration
+   --------------------------- */
+async function fetchDevices(){
+  try {
+    const j = await apiFetch('/devices/list', { method:'GET' });
+    if(!j || !j.ok) throw 'no devices';
+    renderDevices(j.devices || []);
+  } catch(e){
+    // could be not implemented on server yet
+    document.getElementById('devicesList').innerHTML = '<div style="color:var(--subtle)">Devices listing unavailable.</div>';
+  }
+}
+
+function renderDevices(devs){
+  const wrap = document.getElementById('devicesList');
+  wrap.innerHTML = '';
+  if(!devs.length){
+    wrap.innerHTML = '<div style="color:var(--subtle)">No devices registered for this account.</div>';
+    return;
+  }
+  devs.forEach(d => {
+    const row = document.createElement('div');
+    row.className = 'device-row';
+    const meta = document.createElement('div'); meta.className='device-meta';
+    const dot = document.createElement('span'); dot.className='dot'; dot.style.background = (d.client_id === CLIENT_ID) ? 'var(--foam)' : 'var(--muted)';
+    const nm = document.createElement('div'); nm.innerHTML = `<div class="device-name">${escapeHtml(d.name||d.client_id)}</div><div class="device-id">${escapeHtml(d.client_id)} · ${d.last_seen||'-'}</div>`;
+    meta.appendChild(dot); meta.appendChild(nm);
+    const actions = document.createElement('div');
+    const btn = document.createElement('button'); btn.textContent='Center';
+    btn.onclick = () => { viz.upsertNode(d.client_id, d.name); viz.setNodeState(d.client_id,'connected'); centerOnNode(d.client_id); };
+    actions.appendChild(btn);
+    row.appendChild(meta); row.appendChild(actions);
+    wrap.appendChild(row);
+  });
+}
+
+function escapeHtml(s){ if(!s) return ''; return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+document.getElementById('refreshDevices').addEventListener('click', fetchDevices);
+document.getElementById('registerDevice').addEventListener('click', async () => {
+  const deviceName = prompt('Name for this device?', navigator.platform || CLIENT_ID) || CLIENT_ID;
+  try {
+    const res = await apiFetch('/devices/register', { method:'POST', body: JSON.stringify({ client_id: CLIENT_ID, name: deviceName }) });
+    // refresh list and announce presence
+    fetchDevices();
+    sendLog({ ts:new Date().toISOString(), type:'client_connected', detail:{ ip: CLIENT_ID, name: deviceName } });
+    viz.upsertNode(CLIENT_ID, deviceName); viz.setNodeState(CLIENT_ID,'connected');
+    alert('Device registered.');
+  } catch(e){
+    alert('Could not register device.');
+  }
+});
+
+/* automatically register this device once after auth check */
+async function autoRegisterDeviceIfNeeded(username){
+  const name = navigator.platform || navigator.userAgent.split(')')[0];
+  try {
+    await apiFetch('/devices/register', { method:'POST', body: JSON.stringify({ client_id: CLIENT_ID, name: name }) });
+    // announce to events
+    sendLog({ ts:new Date().toISOString(), type:'client_connected', detail:{ ip: CLIENT_ID, name: name } });
+    viz.upsertNode(CLIENT_ID, name); viz.setNodeState(CLIENT_ID, 'connected');
+  } catch(e){
+    // silent
+  }
+}
+
+/* center highlight helpers */
+function centerOnNode(id){
+  // brute-force re-init to center visually: create special node and re-run
+  viz.upsertNode(id);
+  // small animation: highlight node by setting transferring then back
+  viz.setNodeState(id,'transferring');
+  setTimeout(()=>viz.setNodeState(id,'connected'), 900);
+}
+
+/* ---------------------------
+   Boot sequence
+   --------------------------- */
+(async function boot(){
+  // 1) check auth (server will redirect if not logged in)
+  const me = await checkAuthOrRedirect();
+  if(!me) return;
+  // 2) init viz already done; auto register device under account and fetch device list
+  await autoRegisterDeviceIfNeeded(me.username || me.user_id);
+  await fetchDevices();
+  // keep device list fresh
+  setInterval(fetchDevices, 10000);
+
+  // also emit a viewer_connected ping every 20 seconds so node stays alive
+  setInterval(()=>{
+    sendLog({ ts:new Date().toISOString(), type:'viewer_connected', detail:{ ip: CLIENT_ID, name: navigator.platform || CLIENT_ID } });
+  }, 20000);
+})();
+
+/* Logout link behavior */
+document.getElementById('logoutLink').addEventListener('click', async (ev) => {
+  ev.preventDefault();
+  try {
+    await apiFetch('/logout', { method:'POST' });
+  } catch(e){}
+  // clear client-side id if you want (optional)
+  // localStorage.removeItem('client_id');
+  window.location.href = '/login';
+});
+
+</script>
+</body>
+</html>
+

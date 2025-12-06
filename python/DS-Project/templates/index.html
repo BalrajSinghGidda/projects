@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Sparse Image Compressor — Upload</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0f172a; --card:#111827; --muted:#9aa6bf; --accent:#2563eb; --text:#e6edf3;
+    }
+    body{font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--text); display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; padding:24px;}
+    .card{background:var(--card); padding:22px; border-radius:12px; box-shadow:0 6px 20px rgba(2,6,23,0.6); width:880px; max-width:100%;}
+    h1{margin:0 0 8px; font-size:20px}
+    label{display:block; margin-top:10px; font-size:14px; color:var(--muted);}
+    input[type=file]{margin-top:8px;}
+    .row{display:flex; gap:12px; margin-top:12px; align-items:end;}
+    .btn{background:var(--accent); color:white; padding:10px 14px; border-radius:8px; border:none; cursor:pointer;}
+    .small{font-size:13px; color:var(--muted);}
+    .fields{display:flex; gap:12px; align-items:center;}
+    input[type=number]{width:120px; padding:6px; border-radius:6px; border:1px solid #223043; background:#0b1220; color:var(--text);}
+    select{padding:6px; border-radius:6px; border:1px solid #223043; background:#0b1220; color:var(--text);}
+    #spinner{display:none; width:20px; vertical-align:middle; margin-left:10px;}
+    footer{margin-top:14px; color:var(--muted); font-size:13px;}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Sparse Image Compressor — Upload</h1>
+    <p class="small">Upload an image (png/jpg). Choose the compression format and optional threshold (for binarization / lossy). For best demo results use scanned documents or sketches.</p>
+
+    <form id="uform" method="post" enctype="multipart/form-data" action="/process">
+      <label for="file">Image file</label>
+      <input id="file" type="file" name="file" accept="image/*" required>
+
+      <div class="row">
+        <div style="flex:1">
+          <label for="format">Format</label>
+          <select id="format" name="format">
+            <option value="coo">COO (json)</option>
+            <option value="bin">Binary COO (.bin)</option>
+            <option value="rle">RLE (json)</option>
+          </select>
+        </div>
+
+        <div style="width:150px;">
+          <label for="threshold">Threshold (optional)</label>
+          <input id="threshold" name="threshold" type="number" min="0" max="255" placeholder="e.g. 30">
+        </div>
+
+        <div style="width:170px;">
+          <label>&nbsp;</label>
+          <button class="btn" type="submit">Compress</button>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <img id="spinner" src="data:image/gif;base64,R0lGODlhEAAQAPIAAP///wAAAMLCwgAAAGZmZgAAAP///wAAAAAAAAAAACH5BAEAAAMALAAAAAAQABAAAANKeLrc/jDKSesy3wCwKQKpWq/0KADs=" alt="...">
+        <span class="small" id="status"></span>
+      </div>
+    </form>
+
+    <footer>
+      Tip: Keep demo images under ~3–5 MP to keep the web UI snappy. If you want async/background processing later, we can add a task queue.
+    </footer>
+  </div>
+
+<script>
+const form = document.getElementById('uform');
+form.addEventListener('submit', () => {
+  document.getElementById('spinner').style.display = 'inline-block';
+  document.getElementById('status').textContent = 'Processing — this can take a few seconds';
+});
+</script>
+</body>
+</html>
+

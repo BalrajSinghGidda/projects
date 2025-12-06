@@ -1,0 +1,34 @@
+# io_utils.py
+from PIL import Image
+import numpy as np
+import os, struct
+
+
+def load_image_grayscale(path, threshold=None):
+    img = Image.open(path).convert("L")
+    arr = np.array(img)
+    if threshold is not None:
+        arr = (arr > threshold).astype("uint8") * 255
+    return arr
+
+
+def save_png_from_array(arr, path):
+    img = Image.fromarray(arr.astype("uint8"))
+    img.save(path)
+
+
+def read_spco_binary(path):
+    with open(path, "rb") as f:
+        magic = f.read(4)
+        if magic != b"SPCO":
+            raise ValueError("Bad format")
+        H, W, N = struct.unpack("<III", f.read(12))
+        data = []
+        for _ in range(N):
+            r, c, v = struct.unpack("<IIb", f.read(12))
+            data.append((r, c, v))
+    return (H, W), data
+
+
+def file_size(path):
+    return os.path.getsize(path)

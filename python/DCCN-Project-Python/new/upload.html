@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Upload — Network Node</title>
+<style>
+  :root{ --base:#faf4ed; --rose:#e6b8c4; --pine:#316a78; --surface:#fffaf6; --gold:#c08a4b; --foam:#5fb6b1; --love:#b4637a; }
+  html, body { height:100vh; margin:0; background:var(--base); font-family:Inter,system-ui,sans-serif; padding-top:72px; }
+  .topnav{ position:fixed; top:0; left:0; right:0; padding:12px 48px; background:#f3ebe7; border-bottom:1px solid rgba(0,0,0,0.03); display:flex; align-items:center; justify-content:space-between; }
+  .nav-links{ display:flex; gap:14px; }
+  .nav-links a{ text-decoration:none; color:var(--pine); font-weight:600; }
+  #wrap{ height:calc(100vh - 72px); display:flex; align-items:center; justify-content:center; }
+  #uploadBox{ width:min(760px,92%); background:var(--surface); padding:38px; border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,0.06); text-align:center; }
+  input[type=file]{ padding:10px; border-radius:8px; }
+  button{ background:var(--pine); color:#fff; padding:10px 18px; border-radius:10px; border:none; cursor:pointer; font-weight:700; }
+  #progress{ width:80%; height:14px; margin:18px auto; background:rgba(0,0,0,0.04); border-radius:8px; overflow:hidden; }
+  #bar{ height:100%; width:0; background:linear-gradient(90deg, #8a6fd1, #e6b8c4); transition:width 0.12s; }
+  #msg{ color:#666; margin-top:8px; }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div style="font-weight:700;color:var(--pine)">Network Topology Demo</div>
+  <div class="nav-links">
+    <a href="/">Visualization</a>
+    <a href="/upload">Upload</a>
+    <a href="/files">Files</a>
+  </div>
+</nav>
+
+<div id="wrap">
+  <div id="uploadBox" role="region">
+    <h2 style="color:var(--rose); margin:0 0 8px 0;">Upload a File to the Network Server</h2>
+    <input id="fileInput" type="file"><br>
+    <button id="uploadBtn">Upload</button>
+    <div id="progress"><div id="bar"></div></div>
+    <div id="msg"></div>
+    <a href="/" style="display:block;margin-top:12px;color:var(--pine);font-weight:600;">← Back to Visualization</a>
+  </div>
+</div>
+
+<script>
+  function genId(){ return Math.random().toString(36).slice(2,8) + '-' + Date.now().toString(36).slice(-6); }
+  function getClientId(){
+    try {
+      let id = localStorage.getItem('client_id');
+      if(!id){ id = genId(); localStorage.setItem('client_id', id); }
+      return id;
+    } catch (e) { return genId(); }
+  }
+  const CLIENT_ID = getClientId();
+
+  function emitEvent(e){
+    if(!e.detail) e.detail = {};
+    if(!e.detail.ip) e.detail.ip = CLIENT_ID;
+    if(navigator.sendBeacon){
+      try { navigator.sendBeacon('/log_event', JSON.stringify(e)); return; } catch(err){}
+    }
+    fetch('/log_event', { method:'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(e) }).catch(()=>{});
+  }
+
+  document.getElementById('uploadBtn').addEventListener('click', ()=>{
+    const f = document.getElementById('fileInput').files[0];
+    const bar = document.getElementById('bar');
+    const msg = document.getElementById('msg');
+    if(!f){ msg.textContent='Please choose a file'; msg.style.color='var(--love)'; return; }
+
+    emitEvent({ ts:new Date().toISOString(), type:'put_start', detail:{ ip: CLIENT_ID, file: f.name, size: f.size }});
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST','/upload',true);
+
+    xhr.upload.onprogress = (e) => {
+      if(e.lengthComputable){
+        const pct = Math.floor((e.loaded / e.total) * 100);
+        bar.style.width = pct + '%';
+      }
+    };
+    xhr.onload = ()=>{
+      if(xhr.status === 200){
+        bar.style.width = '100%';
+        msg.textContent = 'Upload complete';
+        emitEvent({ ts:new Date().toISOString(), type:'put_done', detail:{ ip: CLIENT_ID, file: f.name, size: f.size }});
+      } else {
+        msg.textContent = 'Upload failed';
+      }
+      setTimeout(()=>{ bar.style.width = '0%'; }, 900);
+    };
+    xhr.onerror = ()=>{
+      msg.textContent = 'Network error';
+      setTimeout(()=>{ bar.style.width = '0%'; }, 900);
+    };
+
+    const fd = new FormData();
+    fd.append('file', f);
+    fd.append('client_id', CLIENT_ID);
+    msg.textContent = 'Uploading...';
+    xhr.send(fd);
+  });
+</script>
+</body>
+</html>
+

@@ -1,0 +1,21 @@
+{"ts": "2025-11-12T10:44:25", "type": "client_connected", "detail": {"ip": "127.0.0.1"}}
+{"ts": "2025-11-12T10:44:50", "type": "error", "detail": {"ip": "127.0.0.1", "what": "unknown", "cmd": ""}}
+{"ts": "2025-11-12T10:45:15", "type": "put_start", "detail": {"ip": "127.0.0.1", "file": "hello.txt", "size": 25}}
+{"ts": "2025-11-12T10:45:25", "type": "error", "detail": {"ip": "127.0.0.1", "file": "hello.txt", "what": "PUT incomplete"}}
+{"ts": "2025-11-12T10:45:25", "type": "client_disconnected", "detail": {"ip": "127.0.0.1"}}
+{"ts": "2025-11-12T10:45:28", "type": "client_connected", "detail": {"ip": "127.0.0.1"}}
+{"ts": "2025-11-12T10:45:49.219Z", "type": "put_start", "detail": {"ip": "679b8n-s9fnoa", "file": "FreeshipCard.pdf", "size": 344328}}
+{"ts": "2025-11-12T10:45:49", "type": "put_done", "detail": {"ip": "127.0.0.1", "file": "FreeshipCard.pdf", "size": 344328}}
+{"ts": "2025-11-12T10:45:49.236Z", "type": "put_done", "detail": {"ip": "679b8n-s9fnoa", "file": "FreeshipCard.pdf", "size": 344328}}
+{"ts": "2025-11-12T10:46:00", "type": "error", "detail": {"ip": "127.0.0.1", "what": "unknown", "cmd": "PULL FreeshipCard.pdf"}}
+{"ts": "2025-11-12T10:46:12", "type": "error", "detail": {"ip": "127.0.0.1", "what": "unknown", "cmd": "FETCH FreeshipCard.pdf"}}
+{"ts": "2025-11-12T10:46:15", "type": "client_disconnected", "detail": {"ip": "127.0.0.1"}}
+{"ts": "2025-11-12T10:46:17", "type": "client_connected", "detail": {"ip": "127.0.0.1"}}
+{"ts": "2025-11-12T10:47:35", "type": "put_start", "detail": {"ip": "127.0.0.1", "file": "file1.txt", "size": 1}}
+{"ts": "2025-11-12T10:47:36", "type": "put_done", "detail": {"ip": "127.0.0.1", "file": "file1.txt", "size": 1}}
+{"ts": "2025-11-12T10:47:36", "type": "error", "detail": {"ip": "127.0.0.1", "what": "unknown", "cmd": "212"}}
+{"ts": "2025-11-12T10:47:45", "type": "get_start", "detail": {"ip": "127.0.0.1", "file": "file1.txt", "size": 1}}
+{"ts": "2025-11-12T10:47:45", "type": "get_done", "detail": {"ip": "127.0.0.1", "file": "file1.txt", "size": 1}}
+{"ts": "2025-11-12T10:47:53", "type": "client_disconnected", "detail": {"ip": "127.0.0.1"}}
+{"ts": "2025-11-12T10:53:22", "type": "client_connected", "detail": {"ip": "127.0.0.1"}}
+{"ts": "2025-11-12T10:53:54", "type": "client_disconnected", "detail": {"ip": "127.0.0.1"}}

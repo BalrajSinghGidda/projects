@@ -1,0 +1,334 @@
+# # webapp.py
+# from flask import Flask, request, render_template_string, send_file, redirect, url_for
+# import os, tempfile
+# from io_utils import load_image_grayscale, save_png_from_array
+# from sparse_formats import COO
+# from cli import compress, decompress, visualize
+# import subprocess
+#
+# app = Flask(__name__)
+# UPLOAD_FOLDER = "uploads"
+# os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+#
+# INDEX = """
+# <!doctype html>
+# <title>Sparse Compressor</title>
+# <h2>Upload image</h2>
+# <form method=post enctype=multipart/form-data action="/upload">
+#   <input type=file name=file>
+#   Threshold (optional): <input type=number name=threshold min=0 max=255>
+#   <select name=format><option>coo</option><option>bin</option><option>rle</option></select>
+#   <input type=submit value=Upload>
+# </form>
+# """
+#
+#
+# @app.route("/")
+# def index():
+#     return INDEX
+#
+#
+# @app.route("/upload", methods=["POST"])
+# def upload():
+#     f = request.files["file"]
+#     thr = request.form.get("threshold", None)
+#     fmt = request.form.get("format", "coo")
+#     path = os.path.join(UPLOAD_FOLDER, f.filename)
+#     f.save(path)
+#     out = path + f".{fmt}.json" if fmt != "bin" else path + ".bin"
+#     # call compression via our CLI function
+#     import sys
+#
+#     # use subprocess for isolation
+#     cmd = [
+#         "python",
+#         "cli.py",
+#         "compress",
+#         "--input",
+#         path,
+#         "--output",
+#         out,
+#         "--format",
+#         fmt,
+#     ]
+#     if thr:
+#         cmd += ["--threshold", str(int(thr))]
+#     subprocess.check_call(cmd)
+#     # create reconstruction
+#     recon = out + ".recon.png"
+#     cmd2 = ["python", "cli.py", "decompress", "--input", out, "--output", recon]
+#     subprocess.check_call(cmd2)
+#     sparsity = out + ".sparsity.png"
+#     cmd3 = ["python", "cli.py", "visualize", "--input", out, "--output", sparsity]
+#     subprocess.check_call(cmd3)
+#     return f"""
+#     <h3>Done</h3>
+#     <p>Original: {path}</p>
+#     <p>Compressed: {out}</p>
+#     <p><img src="/file/{path}" width=300> <img src="/file/{recon}" width=300></p>
+#     <p>Sparsity: <img src="/file/{sparsity}" width=300></p>
+#     """
+#
+#
+# @app.route("/file/<path:p>")
+# def serve_file(p):
+#     return send_file(p, conditional=True)
+#
+#
+# if __name__ == "__main__":
+#     app.run(debug=True)
+
+# webapp.py
+import os
+import uuid
+import json
+from flask import (
+    Flask,
+    request,
+    redirect,
+    url_for,
+    render_template_string,
+    send_file,
+    abort,
+)
+from types import SimpleNamespace
+from io_utils import load_image_grayscale, save_png_from_array, file_size
+from sparse_formats import COO
+import cli  # uses cli.compress / cli.decompress / cli.visualize
+import pathlib
+
+app = Flask(__name__)
+BASE = pathlib.Path(__file__).parent.resolve()
+UPLOAD_DIR = BASE / "uploads"
+OUT_DIR = BASE / "out"
+for d in (UPLOAD_DIR, OUT_DIR):
+    d.mkdir(exist_ok=True)
+
+INDEX_HTML = """
+<!doctype html>
+<html>
+<head>
+  <title>Sparse Image Compressor — Upload</title>
+  <style>
+    body{font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:#0f172a; color:#e6edf3; display:flex; align-items:center; justify-content:center; height:100vh;}
+    .card{background:#111827;padding:22px;border-radius:12px;box-shadow:0 6px 20px rgba(2,6,23,0.6);width:760px;}
+    h1{margin:0 0 8px;font-size:20px}
+    label{display:block;margin-top:10px;font-size:14px;color:#9aa6bf;}
+    input[type=file]{margin-top:8px;}
+    .row{display:flex;gap:12px;margin-top:12px;}
+    .btn{background:#2563eb;color:white;padding:10px 14px;border-radius:8px;border:none;cursor:pointer;}
+    .small{font-size:13px;color:#9aa6bf;}
+    #spinner{display:none;margin-left:10px;}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Sparse Image Compressor — Upload</h1>
+    <p class="small">Upload an image (grayscale or color). Choose compress format and optional threshold (for binarization / lossy).</p>
+    <form id="uform" method="post" enctype="multipart/form-data" action="/process">
+      <label>Image file</label>
+      <input type="file" name="file" required>
+      <div class="row">
+        <div style="flex:1">
+          <label>Format</label>
+          <select name="format">
+            <option value="coo">COO (json)</option>
+            <option value="bin">Binary COO (.bin)</option>
+            <option value="rle">RLE (json)</option>
+          </select>
+        </div>
+        <div style="width:150px;">
+          <label>Threshold (optional)</label>
+          <input type="number" name="threshold" min="0" max="255" placeholder="e.g. 30">
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <button class="btn" type="submit">Compress</button>
+        <img id="spinner" src="data:image/gif;base64,R0lGODlhEAAQAPIAAP///wAAAMLCwgAAAGZmZgAAAP///wAAAAAAAAAAACH5BAEAAAMALAAAAAAQABAAAANKeLrc/jDKSesy3wCwKQKpWq/0KADs=" alt="..."> 
+        <span class="small" id="status"></span>
+      </div>
+    </form>
+    <p class="small" style="margin-top:12px;color:#9aa6bf">Tip: scanned documents and black-background sketches compress best.</p>
+  </div>
+
+<script>
+const form = document.getElementById('uform');
+form.addEventListener('submit', () => {
+  document.getElementById('spinner').style.display = 'inline-block';
+  document.getElementById('status').textContent = 'Processing — this can take a few seconds';
+});
+</script>
+</body>
+</html>
+"""
+
+RESULT_HTML = """
+<!doctype html>
+<html>
+<head>
+  <title>Results — {{name}}</title>
+  <style>
+    body{font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:#071029;color:#e6edf3;padding:28px;}
+    .wrap{display:flex;gap:18px;align-items:flex-start;}
+    .col{background:#0b1320;padding:14px;border-radius:10px;}
+    img{border-radius:6px;max-width:420px;max-height:420px;display:block}
+    .meta{font-size:13px;color:#9aa6bf;margin-top:8px}
+    a.btn{display:inline-block;padding:8px 12px;background:#06b6d4;border-radius:8px;color:#012; text-decoration:none;margin-top:8px}
+  </style>
+</head>
+<body>
+  <h2>Results — {{name}}</h2>
+  <div class="wrap">
+    <div class="col">
+      <h4>Original</h4>
+      <img src="/file/{{orig}}" alt="orig">
+      <div class="meta">File: {{orig_name}} • Size: {{orig_size}} bytes</div>
+    </div>
+    <div class="col">
+      <h4>Reconstructed</h4>
+      <img src="/file/{{recon}}" alt="recon">
+      <div class="meta">File: {{recon_name}} • Size: {{recon_size}} bytes</div>
+    </div>
+    <div class="col">
+      <h4>Sparsity heatmap</h4>
+      <img src="/file/{{sparsity}}" alt="sparsity">
+      <div class="meta">Nonzeros: {{nonzeros}} / {{total_pixels}} • Compression: {{ratio}}</div>
+      <div style="margin-top:10px;">
+        <a class="btn" href="/file/{{compfile}}">Download compressed</a>
+        <a class="btn" href="/">Compress another</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+"""
+
+
+def ext_for_format(fmt: str):
+    if fmt == "coo":
+        return ".coo.json"
+    if fmt == "rle":
+        return ".rle.json"
+    if fmt == "bin":
+        return ".bin"
+    return ".c"
+
+
+@app.route("/", methods=["GET"])
+def index():
+    return render_template_string(INDEX_HTML)
+
+
+@app.route("/process", methods=["POST"])
+def process():
+    f = request.files.get("file")
+    if not f:
+        return "No file uploaded", 400
+    fmt = request.form.get("format", "coo")
+    thr_raw = request.form.get("threshold", "").strip()
+    thr = int(thr_raw) if thr_raw != "" else None
+
+    uid = uuid.uuid4().hex[:10]
+    safe_name = f"{uid}_{f.filename}"
+    in_path = UPLOAD_DIR / safe_name
+    f.save(in_path)
+
+    out_name = safe_name + ext_for_format(fmt)
+    out_path = OUT_DIR / out_name
+
+    # call CLI compress (we call the function directly for speed)
+    args = SimpleNamespace(
+        input=str(in_path), output=str(out_path), format=fmt, threshold=thr
+    )
+    try:
+        cli.compress(args)
+    except Exception as e:
+        return f"Compression failed: {e}", 500
+
+    # decompress to recon image
+    recon_name = safe_name + ".recon.png"
+    recon_path = OUT_DIR / recon_name
+    dargs = SimpleNamespace(input=str(out_path), output=str(recon_path))
+    try:
+        cli.decompress(dargs)
+    except Exception as e:
+        return f"Decompress failed: {e}", 500
+
+    # sparsity visualization
+    spars_name = safe_name + ".sparsity.png"
+    spars_path = OUT_DIR / spars_name
+    vargs = SimpleNamespace(input=str(out_path), output=str(spars_path))
+    try:
+        cli.visualize(vargs)
+    except Exception as e:
+        return f"Visualize failed: {e}", 500
+
+    # compute stats
+    try:
+        orig_sz = file_size(str(in_path))
+        comp_sz = file_size(str(out_path))
+        recon_sz = file_size(str(recon_path))
+    except Exception:
+        orig_sz = comp_sz = recon_sz = 0
+
+    # compute nonzeros / total
+    coo = None
+    try:
+        if fmt == "coo" or fmt == "rle":
+            coo = COO.from_json(str(out_path)) if fmt == "coo" else None
+        if fmt == "bin":
+            # try reading binary via sparse_formats helper
+            from sparse_formats import read_coo_binary
+
+            coo = read_coo_binary(str(out_path))
+    except Exception:
+        coo = None
+
+    nonzeros = len(coo.data) if coo else "?"
+    total_pixels = coo.shape[0] * coo.shape[1] if coo else "?"
+    ratio = f"{(orig_sz / comp_sz):.2f}" if comp_sz else "?"
+
+    # save result metadata to JSON for debugging / reproducibility
+    meta = {
+        "original": str(in_path),
+        "compressed": str(out_path),
+        "reconstructed": str(recon_path),
+        "sparsity": str(spars_path),
+        "orig_size": orig_sz,
+        "comp_size": comp_sz,
+        "recon_size": recon_sz,
+        "nonzeros": nonzeros,
+        "total_pixels": total_pixels,
+        "ratio": ratio,
+    }
+    meta_path = OUT_DIR / (safe_name + ".meta.json")
+    with open(meta_path, "w") as mf:
+        json.dump(meta, mf, indent=2)
+
+    return render_template_string(
+        RESULT_HTML,
+        name=f.filename,
+        orig=str(in_path.relative_to(BASE)),
+        recon=str(recon_path.relative_to(BASE)),
+        sparsity=str(spars_path.relative_to(BASE)),
+        compfile=str(out_path.relative_to(BASE)),
+        orig_name=f.filename,
+        recon_name=recon_name,
+        orig_size=orig_sz,
+        recon_size=recon_sz,
+        nonzeros=nonzeros,
+        total_pixels=total_pixels,
+        ratio=ratio,
+    )
+
+
+@app.route("/file/<path:relpath>")
+def serve_file(relpath):
+    p = BASE / relpath
+    if not p.exists():
+        abort(404)
+    return send_file(str(p), conditional=True)
+
+
+if __name__ == "__main__":
+    app.run(debug=True, threaded=True)

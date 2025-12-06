@@ -1,0 +1,11 @@
+{"ts": "2025-11-10T09:08:50.168Z", "type": "put_start", "detail": {"ip": "679b8n-s9fnoa", "file": "server.py", "size": 4462}}
+{"ts": "2025-11-10T09:08:50", "type": "put_done", "detail": {"ip": "127.0.0.1", "file": "server.py", "size": 4462}}
+{"ts": "2025-11-10T09:08:50.184Z", "type": "put_done", "detail": {"ip": "679b8n-s9fnoa", "file": "server.py", "size": 4462}}
+{"ts": "2025-11-10T12:29:22", "type": "client_connected", "detail": {"ip": "100.107.255.99"}}
+{"ts": "2025-11-10T12:29:35", "type": "error", "detail": {"ip": "100.107.255.99", "what": "unknown", "cmd": "PULL server"}}
+{"ts": "2025-11-10T12:29:46", "type": "error", "detail": {"ip": "100.107.255.99", "what": "unknown", "cmd": "PULL server.py"}}
+{"ts": "2025-11-10T12:30:06", "type": "get_start", "detail": {"ip": "100.107.255.99", "file": "server.py", "size": 4462}}
+{"ts": "2025-11-10T12:30:06", "type": "get_done", "detail": {"ip": "100.107.255.99", "file": "server.py", "size": 4462}}
+{"ts": "2025-11-10T12:30:16", "type": "client_disconnected", "detail": {"ip": "100.107.255.99"}}
+{"ts": "2025-11-10T12:30:26", "type": "client_connected", "detail": {"ip": "100.107.255.99"}}
+{"ts": "2025-11-10T12:30:36", "type": "client_disconnected", "detail": {"ip": "100.107.255.99"}}
