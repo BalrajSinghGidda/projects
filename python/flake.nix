@@ -17,8 +17,11 @@
           isort
           flask
           sqlalchemy
+          matplotlib
           flask-sqlalchemy
           flask-socketio
+          numpy
+          pandas
           eventlet
           werkzeug
           itsdangerous
