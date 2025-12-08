@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Transform Compressed Image</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f4f7f9; --card-bg-color: #ffffff; --text-color: #333; --header-color: #2c3e50;
+            --border-color: #e0e0e0; --link-color: #3498db; --link-hover-color: #2980b9;
+        }
+        html.dark-mode {
+            --bg-color: #1a202c; --card-bg-color: #2d3748; --text-color: #e2e8f0; --header-color: #a0aec0;
+            --border-color: #4a5568; --link-color: #63b3ed; --link-hover-color: #90cdf4;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; }
+        .header { text-align: center; padding: 20px 0; border-bottom: 1px solid var(--border-color); position: relative; }
+        h1, h2 { color: var(--header-color); margin: 0; }
+        nav { margin-top: 10px; }
+        nav a { color: var(--link-color); text-decoration: none; margin: 0 15px; font-size: 1.1em; }
+        nav a:hover, nav a.active { text-decoration: underline; color: var(--link-hover-color); }
+        .theme-switcher { position: absolute; top: 20px; right: 20px; }
+
+        .main-container { display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .card { background: var(--card-bg-color); padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px; width: 100%; max-width: 800px;}
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 500; }
+        input, select { width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #4a5568; box-sizing: border-box; background-color: var(--card-bg-color); color: var(--text-color);}
+        .button { background-color: var(--link-color); color: white !important; border: none; cursor: pointer; font-size: 16px; font-weight: 500; padding: 12px 20px; border-radius: 4px; text-decoration: none; display: inline-block; text-align: center; }
+        .button:hover { background-color: var(--link-hover-color); }
+        
+        #crop_canvas { cursor: crosshair; max-width: 100%; border: 1px solid #ccc; background-color: #000; display: block; margin: 0 auto;}
+        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+        .image-container h2 { margin-bottom: 15px; text-align: center; }
+        img { max-width: 100%; border: 1px solid #ccc; border-radius: 4px; }
+        .crop-controls { display: none; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;}
+        .crop-display { margin-top: 10px; text-align: center; font-size: 0.9em; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Transformations</h1>
+        <nav>
+            <a href="/">Compress</a> | <a href="/decompress">Decompress</a> | <a href="/transform" class="active">Transform</a>
+        </nav>
+        <div class="theme-switcher">
+            <label for="dark_mode_toggle">Dark Mode</label>
+            <input type="checkbox" id="dark_mode_toggle" onchange="toggleDarkMode(this.checked)">
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="card">
+            {% if not interact_mode and not result %}
+                <h2>Step 1: Upload File</h2>
+                <form method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="file">Upload Compressed File (.npz):</label>
+                        <input type="file" name="file" accept=".npz" required>
+                    </div>
+                    <button type="submit" class="button" style="width:100%;">Prepare for Transformation</button>
+                </form>
+            {% endif %}
+
+            {% if interact_mode %}
+                <h2>Step 2: Select Transformation</h2>
+                <canvas id="crop_canvas" style="display: none;"></canvas>
+                <div id="crop_display" class="crop-display">X: 0, Y: 0, W: 0, H: 0</div>
+                <form method="post">
+                    <input type="hidden" name="source_file" value="{{ source_file }}">
+                    <input type="hidden" id="crop_x" name="crop_x" value="0">
+                    <input type="hidden" id="crop_y" name="crop_y" value="0">
+                    <input type="hidden" id="crop_w" name="crop_w" value="0">
+                    <input type="hidden" id="crop_h" name="crop_h" value="0">
+                    
+                    <div class="form-group">
+                        <label for="transform">Transformation:</label>
+                        <select name="transform" id="transform" onchange="toggleCropInput(this.value)">
+                            <option value="rotate90">Rotate 90° Clockwise</option>
+                            <option value="flip_vertical">Flip Vertical</option>
+                            <option value="flip_horizontal">Flip Horizontal</option>
+                            <option value="crop">Crop</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="button" style="width:100%;">Apply Transform</button>
+                </form>
+            {% endif %}
+
+            {% if result %}
+                <h2>Result</h2>
+                <div class="results-grid">
+                    <div class="image-container"><h2>Before</h2><img src="{{ url_for('static', filename=result.before_image) }}" alt="Before"></div>
+                    <div class="image-container"><h2>After</h2><img src="{{ url_for('static', filename=result.after_image) }}" alt="After"></div>
+                </div>
+                <br>
+                <div style="text-align: center;"><a href="{{ url_for('download_file', filename=result.transformed_file) }}" class="button">Download Transformed .npz</a></div>
+                <br>
+                <div style="text-align: center;"><a href="/transform">Transform another file</a></div>
+            {% endif %}
+
+            {% if error %}<p style="color: red; text-align: center;">Error: {{ error }}</p>{% endif %}
+        </div>
+    </div>
+
+    <script>
+        function toggleDarkMode(isDark) {
+            localStorage.setItem('darkMode', isDark);
+            document.documentElement.classList.toggle('dark-mode', isDark);
+        }
+        const savedTheme = localStorage.getItem('darkMode') === 'true';
+        document.getElementById('dark_mode_toggle').checked = savedTheme;
+        toggleDarkMode(savedTheme);
+
+        // Crop interactivity
+        {% if interact_mode %}
+        const canvas = document.getElementById('crop_canvas');
+        const ctx = canvas.getContext('2d');
+        const imageToCrop = new Image();
+        imageToCrop.src = "{{ url_for('static', filename=image_to_crop) }}";
+        
+        let startX, startY, isDrawing = false;
+        let cropRect = { x: 0, y: 0, w: 0, h: 0 }; // Use cropRect to avoid conflict with rect keyword
+
+        // Function to update hidden inputs and display
+        function updateCropDisplay() {
+            document.getElementById('crop_x').value = Math.floor(cropRect.x);
+            document.getElementById('crop_y').value = Math.floor(cropRect.y);
+            document.getElementById('crop_w').value = Math.floor(cropRect.w);
+            document.getElementById('crop_h').value = Math.floor(cropRect.h);
+            document.getElementById('crop_display').textContent = `X: ${Math.floor(cropRect.x)}, Y: ${Math.floor(cropRect.y)}, W: ${Math.floor(cropRect.w)}, H: ${Math.floor(cropRect.h)}`;
+        }
+
+        imageToCrop.onload = () => {
+            canvas.width = imageToCrop.naturalWidth;
+            canvas.height = imageToCrop.naturalHeight;
+            canvas.style.display = 'block'; // Show canvas once image is loaded
+            drawCrop();
+        };
+
+        function drawCrop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+            ctx.drawImage(imageToCrop, 0, 0, canvas.width, canvas.height);
+
+            if (cropRect.w && cropRect.h) {
+                // Draw semi-transparent overlay outside selection
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Clear the selected area
+                ctx.clearRect(cropRect.x, cropRect.y, cropRect.w, cropRect.h);
+                
+                // Draw selection border
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(cropRect.x, cropRect.y, cropRect.w, cropRect.h);
+            }
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            const bounds = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / bounds.width;
+            const scaleY = canvas.height / bounds.height;
+
+            startX = (e.clientX - bounds.left) * scaleX;
+            startY = (e.clientY - bounds.top) * scaleY;
+            isDrawing = true;
+            cropRect = { x: startX, y: startY, w: 0, h: 0 }; // Initialize cropRect
+            updateCropDisplay();
+            drawCrop(); // Draw the starting point
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const bounds = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / bounds.width;
+            const scaleY = canvas.height / bounds.height;
+            const mouseX = (e.clientX - bounds.left) * scaleX;
+            const mouseY = (e.clientY - bounds.top) * scaleY;
+            
+            // Calculate width and height dynamically based on current mouse position
+            let currentWidth = mouseX - startX;
+            let currentHeight = mouseY - startY;
+
+            // Adjust cropRect to always represent a top-left origin with positive width/height
+            cropRect.x = Math.min(startX, mouseX);
+            cropRect.y = Math.min(startY, mouseY);
+            cropRect.w = Math.abs(currentWidth);
+            cropRect.h = Math.abs(currentHeight);
+
+            updateCropDisplay();
+            drawCrop();
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+            if (cropRect.w < 5 || cropRect.h < 5) { // Minimum selection size
+                cropRect = { x: 0, y: 0, w: 0, h: 0 }; // Reset if too small
+            }
+            updateCropDisplay();
+            drawCrop(); // Final redraw
+        });
+
+        // Hide/show crop controls
+        function toggleCropInput(value) {
+            document.getElementById('crop_canvas').style.display = (value === 'crop') ? 'block' : 'none';
+            document.getElementById('crop_display').style.display = (value === 'crop') ? 'block' : 'none';
+            if (value !== 'crop') { // Reset crop selection if not in crop mode
+                 cropRect = { x: 0, y: 0, w: 0, h: 0 };
+                 updateCropDisplay();
+                 drawCrop();
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            toggleCropInput(document.getElementById('transform').value);
+        });
+
+        {% endif %}
+    </script>
+</body>
+</html>

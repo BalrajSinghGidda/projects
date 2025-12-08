@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Decompress Image</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f4f7f9; --card-bg-color: #ffffff; --text-color: #333; --header-color: #2c3e50;
+            --border-color: #e0e0e0; --link-color: #3498db; --link-hover-color: #2980b9;
+        }
+        html.dark-mode {
+            --bg-color: #1a202c; --card-bg-color: #2d3748; --text-color: #e2e8f0; --header-color: #a0aec0;
+            --border-color: #4a5568; --link-color: #63b3ed; --link-hover-color: #90cdf4;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; transition: background-color 0.2s, color 0.2s; }
+        .header { text-align: center; padding: 20px 0; border-bottom: 1px solid var(--border-color); position: relative; }
+        h1, h2 { color: var(--header-color); margin: 0; }
+        nav { margin-top: 10px; }
+        nav a { color: var(--link-color); text-decoration: none; margin: 0 15px; font-size: 1.1em; }
+        nav a:hover, nav a.active { text-decoration: underline; color: var(--link-hover-color); }
+        .theme-switcher { position: absolute; top: 20px; right: 20px; }
+        .theme-switcher label { font-size: 0.9em; }
+
+        .main-container { display: flex; flex-wrap: wrap; padding: 20px; }
+        .left-column { flex: 1; min-width: 400px; padding: 15px; }
+        .right-column { flex: 2; min-width: 500px; padding: 15px; }
+
+        .card { background: var(--card-bg-color); padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px; transition: background-color 0.2s; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 500; }
+        input[type="file"] { width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #4a5568; box-sizing: border-box; background-color: var(--card-bg-color); color: var(--text-color);}
+        .button { background-color: var(--link-color); color: white !important; border: none; cursor: pointer; font-size: 16px; font-weight: 500; padding: 12px 20px; border-radius: 4px; text-decoration: none; display: inline-block; text-align: center; }
+        .button:hover { background-color: var(--link-hover-color); }
+        
+        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+        img { max-width: 100%; border: 1px solid #ccc; border-radius: 4px; }
+        .stats strong { color: var(--header-color); min-width: 140px; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Decompressor</h1>
+        <nav>
+            <a href="/">Compress</a> | <a href="/decompress" class="active">Decompress</a> | <a href="/transform">Transform</a>
+        </nav>
+        <div class="theme-switcher">
+            <label for="dark_mode_toggle">Dark Mode</label>
+            <input type="checkbox" id="dark_mode_toggle" onchange="toggleDarkMode(this.checked)">
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="left-column">
+            <div class="card">
+                <form method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="file">Upload Compressed File (.npz):</label>
+                        <input type="file" id="file" name="file" accept=".npz" required>
+                    </div>
+                    <button type="submit" class="button" style="width:100%;">Decompress</button>
+                </form>
+            </div>
+            {% if result %}
+            <div class="card stats">
+                <h2>File Info</h2>
+                <p><strong>Format:</strong> {{ result.format }}</p>
+                <p><strong>Mode:</strong> {{ 'Color' if result.is_color else 'Grayscale' }}</p>
+                <p><strong>File Size:</strong> {{ result.compressed_size | format_bytes }}</p>
+                <p><strong>Sparsity:</strong> {{ (100 - (result.nnz / result.total_pixels * 100)) | round(2) }}%</p>
+                <p><strong>Non-zero elements:</strong> {{ result.nnz }} / {{ result.total_pixels }}</p>
+            </div>
+            {% endif %}
+        </div>
+        <div class="right-column">
+            {% if error %}<p style="color: red; text-align: center;">Error: {{ error }}</p>{% endif %}
+            {% if result %}
+            <div class="card">
+                <div class="results-grid">
+                    <div class="col" style="grid-column: 1 / -1;">
+                        <h2>Reconstructed Image</h2>
+                        <img src="{{ url_for('static', filename=result.reconstructed_image) }}" alt="Reconstructed Image">
+                        <br><br>
+                        <div style="text-align: center;">
+                           <a href="{{ url_for('download_file', filename=result.reconstructed_image) }}" class="button">Download Image</a>
+                        </div>
+                    </div>
+                    <div class="col" style="grid-column: 1 / -1;">
+                        <h2>Sparsity Heatmap</h2>
+                        <img src="{{ url_for('static', filename=result.heatmap_image) }}" alt="Sparsity Heatmap">
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <script>
+        function toggleDarkMode(isDark) {
+            localStorage.setItem('darkMode', isDark);
+            document.documentElement.classList.toggle('dark-mode', isDark);
+        }
+        const savedTheme = localStorage.getItem('darkMode') === 'true';
+        document.getElementById('dark_mode_toggle').checked = savedTheme;
+        toggleDarkMode(savedTheme);
+    </script>
+</body>
+</html>
