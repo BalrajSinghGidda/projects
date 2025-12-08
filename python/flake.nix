@@ -18,6 +18,7 @@
           flask
           sqlalchemy
           matplotlib
+          memory-profiler
           flask-sqlalchemy
           flask-socketio
           numpy
