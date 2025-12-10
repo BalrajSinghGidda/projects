@@ -25,6 +25,7 @@
           pandas
           eventlet
           werkzeug
+          python-docx
           itsdangerous
           pip
           setuptools
