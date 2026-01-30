@@ -1,4 +1,4 @@
-class Test {
+class CodeTantra {
   public static void main(String[] args) {
     int x = 3;
     int y = 4;
