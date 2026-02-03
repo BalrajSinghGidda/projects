@@ -1,25 +1,19 @@
+import java.util.*;
+
 class CodeTantra {
   public static void main(String[] args) {
-    int x = 3;
-    int y = 4;
-    int z = 3;
-    if (x > y && y > z) {
-      System.out.println("x > y && y > z is true");
-    } else {
-      System.out.println("x > y && y > z is false");
-    }
 
-    if (z == x && y > z) {
-      System.out.println("z == x && y > z is true");
-    } else {
-      System.out.println("z == x && y > z is false");
-    }
+    String name1 = "Ganga";
+    String name2 = "Amazon";
 
-    if (x == y || x > z) {
-      System.out.println("x == y || x > z is true");
-    } else {
-      System.out.println("x == y || x > z is false");
-    }
+    boolean statement1 = name1 instanceof String;
 
+    boolean statement2 = name2 instanceof name1;
+
+    boolean statement3 = name1 instanceof Object;
+
+    boolean statement4 = args instanceof Object;
+
+    boolean statement5 = args instanceof String[];
   }
 }

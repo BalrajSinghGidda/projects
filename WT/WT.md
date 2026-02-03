@@ -55,3 +55,10 @@
 - Can be written in any language.
 - Used to retrieve and generate dynamic pages.
 - Used to download plugins.
+
+--------------------------------
+
+STATIC WEBPAGE | DYNAMIC WEBPAGE
+--------------------------------
+
+Content of web pages cannot be changed at runtime | Content of web pages can be changed
