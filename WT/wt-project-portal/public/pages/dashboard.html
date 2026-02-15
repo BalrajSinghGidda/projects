@@ -1,11 +1,29 @@
-<h2>Dashboard</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard - WT Portal</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav>
+    <a href="/pages/dashboard.html">Dashboard</a>
+    <a href="/pages/project.html">Create Project</a>
+    <a href="/pages/notifications.html">Notifications</a>
+    <a href="/pages/absence.html">Absence</a>
+    <button onclick="logout()">Logout</button>
+  </nav>
 
-<button onclick="loadMyProjects()">My Projects</button>
-<button onclick="loadAllProjects()">All Projects</button>
-<button onclick="window.location='notifications.html'">Notifications</button>
-<button onclick="window.location='absence.html'">Absence</button>
+  <div class="container">
+    <h2>Dashboard</h2>
+    <div class="actions">
+      <button onclick="loadMyProjects()">My Projects</button>
+      <button onclick="loadAllProjects()">All Projects</button>
+    </div>
 
-<div id="output"></div>
+    <div id="output"></div>
+  </div>
 
-<script src="/js/main.js"></script>
-
+  <script src="/js/main.js"></script>
+</body>
+</html>

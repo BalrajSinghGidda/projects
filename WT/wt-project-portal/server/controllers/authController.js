@@ -9,11 +9,6 @@ exports.register = async (req, res) => {
     return res.status(400).json({ message: "Missing fields" });
   }
 
-  if (!req.body) {
-    return res.status(400).json({ message: "No data sent" });
-  }
-
-
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 

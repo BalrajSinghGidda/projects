@@ -9,11 +9,6 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const notificationController = require("./controllers/notificationController");
-notificationController.setIO(io);
-const notificationRoutes = require("./routes/notificationRoutes");
-app.use("/api/notifications", notificationRoutes);
-
 // 🔥 BODY PARSERS FIRST
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -29,6 +24,11 @@ app.use(session({
 app.use(express.static(path.join(__dirname, "../public")));
 
 // 🔥 ROUTES AFTER SESSION
+const notificationController = require("./controllers/notificationController");
+notificationController.setIO(io);
+const notificationRoutes = require("./routes/notificationRoutes");
+app.use("/api/notifications", notificationRoutes);
+
 const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
 

@@ -15,12 +15,16 @@ exports.createProject = (req, res) => {
     const projectId = result.insertId;
 
     // add creator as member automatically
-    Project.addMember(projectId, userId, () => { });
+    Project.addMember(projectId, userId, (err) => {
+        if (err) console.error("Failed to add creator as member:", err);
+    });
 
     // add other members if provided
-    if (members && members.length > 0) {
+    if (members && Array.isArray(members) && members.length > 0) {
       members.forEach((m) => {
-        Project.addMember(projectId, m, () => { });
+        Project.addMember(projectId, m, (err) => {
+            if (err) console.error(`Failed to add member ${m}:`, err);
+        });
       });
     }
 

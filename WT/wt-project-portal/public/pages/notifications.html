@@ -1,11 +1,34 @@
-<h2>Notifications</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Notifications - WT Portal</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav>
+    <a href="/pages/dashboard.html">Dashboard</a>
+    <a href="/pages/project.html">Create Project</a>
+    <a href="/pages/notifications.html">Notifications</a>
+    <a href="/pages/absence.html">Absence</a>
+    <button onclick="logout()">Logout</button>
+  </nav>
 
-<input id="ntitle" placeholder="Title">
-<input id="nmsg" placeholder="Message">
-<button onclick="sendNotification()">Send</button>
+  <div class="container">
+    <h2>Send Notification</h2>
+    <div class="card">
+      <input id="ntitle" placeholder="Title">
+      <input id="nmsg" placeholder="Message">
+      <button onclick="sendNotification()">Send</button>
+    </div>
 
-<div id="notifications"></div>
+    <hr>
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="/js/main.js"></script>
+    <h2>Notifications History</h2>
+    <div id="notifications-list"></div>
+  </div>
 
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

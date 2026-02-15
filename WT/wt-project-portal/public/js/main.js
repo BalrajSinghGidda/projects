@@ -1,23 +1,50 @@
-const API = "http://localhost:3000/api";
+const API = "/api";
+
+document.addEventListener("DOMContentLoaded", () => {
+  const path = window.location.pathname;
+  if (!path.includes("login.html")) {
+    fetch(`${API}/auth/me`)
+      .then(res => {
+        if (res.status === 401) window.location.href = "/pages/login.html";
+      })
+      .catch(console.error);
+  }
+
+  // Page-specific loads
+  if (path.includes("notifications.html")) loadNotifications();
+  if (path.includes("absence.html")) loadAbsences();
+});
 
 // 🔐 LOGIN
 async function login() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  const res = await fetch(`${API}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ email, password })
-  });
+  try {
+    const res = await fetch(`${API}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ email, password })
+    });
 
-  const data = await res.json();
-  document.getElementById("msg").innerText = data.message;
+    const data = await res.json();
+    if (document.getElementById("msg")) {
+      document.getElementById("msg").innerText = data.message;
+    }
 
-  if (res.ok) {
-    window.location = "dashboard.html";
+    if (res.ok) {
+      window.location = "/pages/dashboard.html";
+    }
+  } catch (error) {
+    console.error("Login error:", error);
   }
+}
+
+// 🚪 LOGOUT
+async function logout() {
+  await fetch(`${API}/auth/logout`, { credentials: "include" });
+  window.location.href = "/pages/login.html";
 }
 
 // 📁 CREATE PROJECT
@@ -34,25 +61,55 @@ async function createProject() {
   });
 
   const data = await res.json();
-  document.getElementById("msg").innerText = data.message;
+  if (document.getElementById("msg")) {
+    document.getElementById("msg").innerText = data.message;
+  }
 }
 
 // 📊 LOAD MY PROJECTS
 async function loadMyProjects() {
-  const res = await fetch(`${API}/projects/mine`, { credentials: "include" });
-  const data = await res.json();
+  try {
+    const res = await fetch(`${API}/projects/mine`, { credentials: "include" });
+    if (!res.ok) throw new Error("Failed to fetch");
+    const data = await res.json();
 
-  document.getElementById("output").innerHTML =
-    data.map(p => `<div>${p.title} (${p.type})</div>`).join("");
+    const output = document.getElementById("output");
+    if (output) {
+      output.innerHTML = data.map(p => `
+        <div class="item">
+          <strong>${p.title}</strong> (${p.type})
+        </div>
+      `).join("");
+    }
+  } catch (err) {
+    console.error(err);
+    if (document.getElementById("output")) {
+      document.getElementById("output").innerText = "Error loading projects.";
+    }
+  }
 }
 
 // 📊 LOAD ALL PROJECTS
 async function loadAllProjects() {
-  const res = await fetch(`${API}/projects/all`, { credentials: "include" });
-  const data = await res.json();
+  try {
+    const res = await fetch(`${API}/projects/all`, { credentials: "include" });
+    if (!res.ok) throw new Error("Failed to fetch");
+    const data = await res.json();
 
-  document.getElementById("output").innerHTML =
-    data.map(p => `<div>${p.title} - ${p.creator}</div>`).join("");
+    const output = document.getElementById("output");
+    if (output) {
+      output.innerHTML = data.map(p => `
+        <div class="item">
+          <strong>${p.title}</strong> - ${p.creator}
+        </div>
+      `).join("");
+    }
+  } catch (err) {
+    console.error(err);
+    if (document.getElementById("output")) {
+      document.getElementById("output").innerText = "Error loading projects.";
+    }
+  }
 }
 
 // 🔔 SEND NOTIFICATION
@@ -60,12 +117,37 @@ async function sendNotification() {
   const title = document.getElementById("ntitle").value;
   const message = document.getElementById("nmsg").value;
 
-  await fetch(`${API}/notifications/send`, {
+  const res = await fetch(`${API}/notifications/send`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
     body: JSON.stringify({ title, message })
   });
+
+  if (res.ok) {
+    alert("Notification sent!");
+    loadNotifications();
+  }
+}
+
+// 🔔 LOAD NOTIFICATIONS
+async function loadNotifications() {
+  try {
+    const res = await fetch(`${API}/notifications/all`, { credentials: "include" });
+    const data = await res.json();
+    const container = document.getElementById("notifications-list");
+    if (container) {
+      container.innerHTML = data.map(n => `
+        <div class="item">
+          <strong>${n.title}</strong> (from ${n.sender})<br>
+          <small>${new Date(n.created_at).toLocaleString()}</small><br>
+          ${n.message}
+        </div>
+      `).join("");
+    }
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 // 🔔 SOCKET LISTENER
@@ -73,7 +155,11 @@ if (typeof io !== "undefined") {
   const socket = io();
 
   socket.on("new_notification", (data) => {
-    alert(`🔔 ${data.title}\n${data.message}`);
+    if (!window.location.pathname.includes("notifications.html")) {
+      alert(`🔔 ${data.title}\n${data.message}`);
+    } else {
+      loadNotifications();
+    }
   });
 }
 
@@ -82,12 +168,33 @@ async function submitAbsence() {
   const reason = document.getElementById("reason").value;
   const date = document.getElementById("date").value;
 
-  await fetch(`${API}/absence/submit`, {
+  const res = await fetch(`${API}/absence/submit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
     body: JSON.stringify({ reason, date })
   });
 
-  alert("Absence submitted");
+  if (res.ok) {
+    alert("Absence submitted");
+    loadAbsences();
+  }
+}
+
+// 🚫 LOAD ABSENCES
+async function loadAbsences() {
+  try {
+    const res = await fetch(`${API}/absence/all`, { credentials: "include" });
+    const data = await res.json();
+    const container = document.getElementById("absences-list");
+    if (container) {
+      container.innerHTML = data.map(a => `
+        <div class="item">
+          <strong>${a.name}</strong> - ${a.reason} (${a.date}) - <em>${a.status}</em>
+        </div>
+      `).join("");
+    }
+  } catch (err) {
+    console.error(err);
+  }
 }

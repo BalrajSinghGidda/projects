@@ -1,10 +1,33 @@
-<h2>Submit Absence</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Absence - WT Portal</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav>
+    <a href="/pages/dashboard.html">Dashboard</a>
+    <a href="/pages/project.html">Create Project</a>
+    <a href="/pages/notifications.html">Notifications</a>
+    <a href="/pages/absence.html">Absence</a>
+    <button onclick="logout()">Logout</button>
+  </nav>
 
-<input id="reason" placeholder="Reason">
-<input id="date" type="date">
-<button onclick="submitAbsence()">Submit</button>
+  <div class="container">
+    <h2>Submit Absence</h2>
+    <div class="card">
+      <input id="reason" placeholder="Reason">
+      <input id="date" type="date">
+      <button onclick="submitAbsence()">Submit</button>
+    </div>
 
-<div id="absences"></div>
+    <hr>
 
-<script src="/js/main.js"></script>
+    <h2>All Absence Requests</h2>
+    <div id="absences-list"></div>
+  </div>
 
+  <script src="/js/main.js"></script>
+</body>
+</html>
