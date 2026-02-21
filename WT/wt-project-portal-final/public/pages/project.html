@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Create Project - WT Portal</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav>
+    <a href="/pages/dashboard.html">Dashboard</a>
+    <a href="/pages/project.html">Create Project</a>
+    <a href="/pages/notifications.html">Notifications</a>
+    <a href="/pages/absence.html">Absence</a>
+    <button onclick="logout()">Logout</button>
+  </nav>
+
+  <div class="container">
+    <h2>Create Project</h2>
+    <div class="card">
+      <input id="title" placeholder="Project Title">
+      <input id="description" placeholder="Description">
+      <select id="type">
+        <option value="major">Major</option>
+        <option value="minor">Minor</option>
+      </select>
+      <button onclick="createProject()">Create</button>
+      <p id="msg"></p>
+
+      <div id="upload-section" style="display:none; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 20px;">
+        <h3>Upload Project File</h3>
+        <input type="file" id="projectFile">
+        <button onclick="uploadFile()">Upload</button>
+        <p id="upload-msg"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/main.js"></script>
+</body>
+</html>
