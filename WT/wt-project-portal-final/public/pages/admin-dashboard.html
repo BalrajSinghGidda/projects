@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard - WT Portal</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="role-admin">
+  <nav>
+    <a class="active" href="/pages/admin-dashboard.html">Dashboard</a>
+    <a href="/pages/project.html">Project Maintenance</a>
+    <a href="/pages/notifications.html">Notifications</a>
+    <a href="/pages/absence.html">Absence</a>
+    <span class="role-badge">ADMIN PORTAL</span>
+    <button onclick="logout()">Logout</button>
+  </nav>
+
+  <div class="container">
+    <section class="page-header">
+      <h2 class="page-title">Admin Operations Console</h2>
+      <p class="subtle">Maintenance-focused portal for platform visibility and governance.</p>
+    </section>
+
+    <section class="dashboard-grid">
+      <div class="panel">
+        <h3 class="panel-title">Admin Maintenance Actions</h3>
+        <div class="actions">
+          <button onclick="loadAllProjects()">All Projects</button>
+          <button onclick="loadAllUsers()">All Users</button>
+          <button onclick="loadDashboardStats()">System Stats</button>
+          <button onclick="loadAbsences()">Absence Queue</button>
+          <button onclick="loadDeadlines()">Submission Deadlines</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 class="panel-title">Admin Focus</h3>
+        <ul class="flat-list">
+          <li>User oversight: student/teacher/admin account visibility.</li>
+          <li>Submission governance: deadline tracking and alignment.</li>
+          <li>Academic operations: absence queue and process monitoring.</li>
+          <li>Project integrity: member corrections and submission audits.</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="panel">
+      <h3 class="panel-title">Live Output</h3>
+      <div id="output"></div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

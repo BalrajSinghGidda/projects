@@ -1,6 +1,6 @@
 # WT Project Portal — Progress Log
 
-Last updated: 2026-03-22
+Last updated: 2026-03-22 (UTC)
 
 ## Update Policy
 - This file is now maintained as a running changelog.
@@ -28,16 +28,23 @@ Build a web-based class project/viva management portal with:
 ## Current Codebase Status
 Implemented modules:
 - Auth: register/login/logout/me
-- Projects: create, list all, list mine, get project by id, search
-- Project members: backend table + model support present
+- Projects: student-only submission, list all, list mine, get project by id, search, deadline-scoped listing
+- Project members: add/list/remove APIs with Socket.IO realtime update event
 - Notifications: create + fetch + realtime broadcast
-- Absence: submit + role-based listing (all for teacher/admin, own for student)
-- Dashboard: basic stats (total/major/minor projects)
+- Absence: submit + teacher/admin approve/reject + role-based listing
+- Deadlines: teacher/admin can create deadlines; students submit under open deadlines
+- Dashboard: system stats (projects/users/roles/pending absences/open deadlines)
 - Uploads: project file upload endpoint (Multer)
+- Users API: teacher/admin user listing for maintenance/member assignment
+- Role-aware frontend behavior: page access redirect + feature visibility rules
+- UI system: MS Office 2013/2016-inspired flat design with role-based theming
 
 Frontend pages present:
 - `public/pages/login.html`
 - `public/pages/dashboard.html`
+- `public/pages/student-dashboard.html`
+- `public/pages/teacher-dashboard.html`
+- `public/pages/admin-dashboard.html`
 - `public/pages/project.html`
 - `public/pages/notifications.html`
 - `public/pages/absence.html`
@@ -70,11 +77,11 @@ If schema is not imported yet, these users do not exist in DB.
 7. Open: `http://localhost:3000`
 
 ## Pending Work (Next Execution Steps)
-1. Step-2: Project member add/remove UI + API wiring with live update.
-2. Tight RBAC for each role per route/page action.
-3. Teacher/HOD dual visibility flow for new projects.
-4. Absence review workflow (`pending/approved/rejected`) UI + endpoints.
-5. Polishing: validation, filters, and demo-ready walkthrough.
+1. Add explicit HOD role or configurable authority scope for teacher/HOD split.
+2. Add deadline close/reopen controls and archival behavior.
+3. Add safer FK/index migration handling for legacy local databases.
+4. Add advanced filters/search UX polish and feedback states.
+5. Add API-level tests or smoke script for role flows.
 
 ## Handoff Notes for Other Agents
 - Use this file as project state snapshot.
@@ -83,6 +90,19 @@ If schema is not imported yet, these users do not exist in DB.
 - Start implementation from “Pending Work” list above.
 
 ## Change Log
+- 2026-03-22T21:03:35Z | major | Fixed absence visibility issues on legacy DBs by adding runtime schema migrations/fallback queries; student requests now appear for teacher/admin and student sees updated decision status. | files: `server/config/db.js`, `server/models/absenceModel.js`, `public/js/main.js`
+- 2026-03-22T21:03:35Z | minor | Hid student project submission panel for teacher/admin and added explicit policy messaging. | files: `public/pages/project.html`, `public/js/main.js`
+- 2026-03-22T21:03:35Z | minor | Fixed admin "Absence Queue" action to render absence list in dashboard output panel. | files: `public/js/main.js`
+- 2026-03-22T20:36:06Z | major | Added submission-deadline workflow: teacher/admin create deadlines, students submit projects under deadlines, and project lists can be filtered by deadline for member management. | files: `server/models/deadlineModel.js`, `server/controllers/deadlineController.js`, `server/routes/deadlineRoutes.js`, `server/models/projectModel.js`, `server/controllers/projectController.js`, `server/routes/projectRoutes.js`, `server/app.js`, `public/pages/project.html`, `public/js/main.js`
+- 2026-03-22T20:36:06Z | major | Added absence review actions for teacher/admin (approve/reject) and surfaced reviewer metadata in UI/API. | files: `server/models/absenceModel.js`, `server/controllers/absenceController.js`, `server/routes/absenceRoutes.js`, `public/pages/absence.html`, `public/js/main.js`
+- 2026-03-22T20:36:06Z | minor | Refined admin portal actions for governance (deadlines + absence queue + expanded stats). | files: `public/pages/admin-dashboard.html`, `server/models/dashboardModel.js`, `public/js/main.js`
+- 2026-03-22T20:36:06Z | minor | Updated DB schema for submission deadlines and absence reviewer tracking. | files: `database-schema.sql`
+- 2026-03-22T19:59:15Z | major | Redesigned UI/UX to Office-style flat interface with role-specific visual themes (student/teacher/admin). | files: `public/css/styles.css`, `public/pages/student-dashboard.html`, `public/pages/teacher-dashboard.html`, `public/pages/admin-dashboard.html`, `public/js/main.js`
+- 2026-03-22T19:59:15Z | minor | Refactored shared pages (project/notifications/absence/login) into panel-based flat layout for consistency. | files: `public/pages/project.html`, `public/pages/notifications.html`, `public/pages/absence.html`, `public/pages/login.html`
+- 2026-03-22T19:40:09Z | major | Completed Step-2: added project member add/remove APIs, realtime member updates, and member-management UI for teacher/admin. | files: `server/models/projectModel.js`, `server/controllers/projectController.js`, `server/routes/projectRoutes.js`, `public/pages/project.html`, `public/js/main.js`
+- 2026-03-22T19:40:09Z | major | Added separate role interfaces and role-based dashboard routing (`student`, `teacher`, `admin`). | files: `public/pages/student-dashboard.html`, `public/pages/teacher-dashboard.html`, `public/pages/admin-dashboard.html`, `public/pages/dashboard.html`, `public/js/main.js`
+- 2026-03-22T19:40:09Z | minor | Added user listing API for admin/teacher maintenance operations. | files: `server/models/userModel.js`, `server/controllers/userController.js`, `server/routes/userRoutes.js`, `server/app.js`
+- 2026-03-22T19:40:09Z | minor | Updated styling for role dashboards and member management controls. | files: `public/css/styles.css`, `public/pages/notifications.html`, `public/pages/absence.html`
 - 2026-03-22T19:11:03Z | minor | Enabled persistent auto-update policy for this progress tracker. | files: `progress.md`
 - 2026-03-22T19:08:27Z | major | Created project progress tracker for cross-machine and cross-agent handoff. | files: `progress.md`
 - 2026-03-22T18:19:54Z | major | Added DB schema with core tables and seeded default users. | files: `database-schema.sql`

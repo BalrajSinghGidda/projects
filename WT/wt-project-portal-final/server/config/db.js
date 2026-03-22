@@ -14,7 +14,47 @@ db.connect((err) => {
     return;
   }
   console.log("✅ Connected to MySQL database");
+  runMigrations();
 });
 
-module.exports = db;
+function runMigrations() {
+  const migrations = [
+    `
+      CREATE TABLE IF NOT EXISTS submission_deadlines (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(200) NOT NULL,
+        type ENUM('major', 'minor') NOT NULL,
+        due_date DATETIME NOT NULL,
+        description TEXT,
+        status ENUM('open', 'closed') DEFAULT 'open',
+        created_by INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `,
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS deadline_id INT NULL",
+    "ALTER TABLE absence_requests ADD COLUMN IF NOT EXISTS reviewed_by INT NULL",
+    "ALTER TABLE absence_requests ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP NULL"
+  ];
 
+  let index = 0;
+  const executeNext = () => {
+    if (index >= migrations.length) {
+      console.log("✅ Database migrations applied");
+      return;
+    }
+
+    db.query(migrations[index], (migrationErr) => {
+      if (migrationErr) {
+        console.error("❌ Migration failed:", migrationErr);
+        return;
+      }
+
+      index += 1;
+      executeNext();
+    });
+  };
+
+  executeNext();
+}
+
+module.exports = db;

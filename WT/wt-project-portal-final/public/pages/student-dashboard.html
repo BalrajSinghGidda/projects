@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Dashboard - WT Portal</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="role-student">
+  <nav>
+    <a class="active" href="/pages/student-dashboard.html">Dashboard</a>
+    <a href="/pages/project.html">My Projects</a>
+    <a href="/pages/notifications.html">Notifications</a>
+    <a href="/pages/absence.html">Absence</a>
+    <span class="role-badge">STUDENT PORTAL</span>
+    <button onclick="logout()">Logout</button>
+  </nav>
+
+  <div class="container">
+    <section class="page-header">
+      <h2 class="page-title">Student Workspace</h2>
+      <p class="subtle">Track your project work, see announcements, and submit absence reasons.</p>
+    </section>
+
+    <section class="dashboard-grid">
+      <div class="panel">
+        <h3 class="panel-title">Quick Actions</h3>
+        <div class="actions">
+          <button onclick="loadMyProjects()">My Projects</button>
+          <button onclick="loadNotifications()">Latest Notifications</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 class="panel-title">Student Focus</h3>
+        <ul class="flat-list">
+          <li>Submit and monitor project details.</li>
+          <li>View teacher notifications in realtime.</li>
+          <li>Submit viva/submission absence requests.</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="panel">
+      <h3 class="panel-title">Live Output</h3>
+      <div id="output"></div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

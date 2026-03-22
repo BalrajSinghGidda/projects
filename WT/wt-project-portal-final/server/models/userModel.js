@@ -14,8 +14,20 @@ const User = {
   findById: (id, callback) => {
     const sql = "SELECT id, name, email, role FROM users WHERE id = ?";
     db.query(sql, [id], callback);
+  },
+
+  list: (role, callback) => {
+    let sql = "SELECT id, name, email, role FROM users";
+    const params = [];
+
+    if (role) {
+      sql += " WHERE role = ?";
+      params.push(role);
+    }
+
+    sql += " ORDER BY name ASC";
+    db.query(sql, params, callback);
   }
 };
 
 module.exports = User;
-

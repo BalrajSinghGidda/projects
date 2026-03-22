@@ -4,18 +4,22 @@
   <title>Login - WT Portal</title>
   <link rel="stylesheet" href="/css/styles.css">
 </head>
-<body>
-  <div class="card">
-    <h2>Login</h2>
+<body class="role-student">
+  <div class="container">
+    <section class="page-header">
+      <h2 class="page-title">WT Project Portal</h2>
+      <p class="subtle">Sign in to continue (student, teacher, or admin).</p>
+    </section>
 
-    <input id="email" placeholder="Email">
-    <input id="password" type="password" placeholder="Password">
-    <button onclick="login()">Login</button>
+    <div class="card" style="max-width: 420px; margin: 0 auto;">
+      <input id="email" placeholder="Email">
+      <input id="password" type="password" placeholder="Password">
+      <button onclick="login()">Login</button>
 
-    <p id="msg"></p>
+      <p id="msg"></p>
+    </div>
   </div>
 
   <script src="/js/main.js"></script>
 </body>
 </html>
-

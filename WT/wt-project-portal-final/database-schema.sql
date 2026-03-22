@@ -14,6 +14,19 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Submission deadlines table (teacher/admin managed)
+CREATE TABLE IF NOT EXISTS submission_deadlines (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  type ENUM('major', 'minor') NOT NULL,
+  due_date DATETIME NOT NULL,
+  description TEXT,
+  status ENUM('open', 'closed') DEFAULT 'open',
+  created_by INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
+);
+
 -- Projects table
 CREATE TABLE IF NOT EXISTS projects (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -21,8 +34,10 @@ CREATE TABLE IF NOT EXISTS projects (
   description TEXT,
   type VARCHAR(50),
   created_by INT,
+  deadline_id INT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+  FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (deadline_id) REFERENCES submission_deadlines(id) ON DELETE SET NULL
 );
 
 -- Project members junction table
@@ -43,8 +58,11 @@ CREATE TABLE IF NOT EXISTS absence_requests (
   reason TEXT NOT NULL,
   date DATE NOT NULL,
   status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+  reviewed_by INT NULL,
+  reviewed_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- Notifications table

@@ -5,6 +5,6 @@ const auth = require("../middleware/authMiddleware");
 
 router.post("/submit", auth, controller.submitAbsence);
 router.get("/all", auth, controller.getAllAbsences);
+router.patch("/:id/status", auth, controller.updateAbsenceStatus);
 
 module.exports = router;
-

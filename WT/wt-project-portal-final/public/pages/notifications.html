@@ -8,24 +8,39 @@
 <body>
   <nav>
     <a href="/pages/dashboard.html">Dashboard</a>
-    <a href="/pages/project.html">Create Project</a>
+    <a href="/pages/project.html">Projects</a>
     <a href="/pages/notifications.html">Notifications</a>
     <a href="/pages/absence.html">Absence</a>
     <button onclick="logout()">Logout</button>
   </nav>
 
   <div class="container">
-    <h2>Send Notification</h2>
-    <div class="card">
-      <input id="ntitle" placeholder="Title">
-      <input id="nmsg" placeholder="Message">
-      <button onclick="sendNotification()">Send</button>
+    <section class="page-header">
+      <h2 class="page-title">Notifications Hub</h2>
+      <p class="subtle">MS Office-style announcement area for posting and reviewing updates.</p>
+    </section>
+
+    <section class="dashboard-grid">
+      <div class="panel" id="notification-form">
+        <h3 class="panel-title">Send Notification (Teacher/Admin)</h3>
+        <input id="ntitle" placeholder="Title">
+        <input id="nmsg" placeholder="Message">
+        <button onclick="sendNotification()">Send</button>
+      </div>
+
+      <div class="panel">
+        <h3 class="panel-title">Realtime Broadcast</h3>
+        <ul class="flat-list">
+          <li>Students receive pop-up alert outside this page.</li>
+          <li>Notifications page auto-refreshes new items.</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="panel">
+      <h3 class="panel-title">Notifications History</h3>
+      <div id="notifications-list"></div>
     </div>
-
-    <hr>
-
-    <h2>Notifications History</h2>
-    <div id="notifications-list"></div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>

@@ -8,33 +8,88 @@
 <body>
   <nav>
     <a href="/pages/dashboard.html">Dashboard</a>
-    <a href="/pages/project.html">Create Project</a>
+    <a href="/pages/project.html">Projects</a>
     <a href="/pages/notifications.html">Notifications</a>
     <a href="/pages/absence.html">Absence</a>
     <button onclick="logout()">Logout</button>
   </nav>
 
   <div class="container">
-    <h2>Create Project</h2>
-    <div class="card">
-      <input id="title" placeholder="Project Title">
-      <input id="description" placeholder="Description">
-      <select id="type">
-        <option value="major">Major</option>
-        <option value="minor">Minor</option>
-      </select>
-      <button onclick="createProject()">Create</button>
-      <p id="msg"></p>
+    <section class="page-header">
+      <h2 class="page-title">Project Workspace</h2>
+      <p class="subtle">Create and maintain major/minor projects in a flat workflow view.</p>
+      <p id="project-policy-msg" class="subtle"></p>
+    </section>
 
-      <div id="upload-section" style="display:none; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 20px;">
-        <h3>Upload Project File</h3>
-        <input type="file" id="projectFile">
-        <button onclick="uploadFile()">Upload</button>
-        <p id="upload-msg"></p>
+    <section class="dashboard-grid">
+      <div class="panel" id="project-submit-section">
+        <h3 class="panel-title">Submit Project (Students)</h3>
+        <input id="title" placeholder="Project Title">
+        <input id="description" placeholder="Description">
+        <select id="type">
+          <option value="major">Major</option>
+          <option value="minor">Minor</option>
+        </select>
+        <select id="deadline-select">
+          <option value="">Select submission deadline</option>
+        </select>
+        <button onclick="createProject()">Submit</button>
+        <p id="msg"></p>
+      </div>
+
+      <div class="panel">
+        <h3 class="panel-title">Upload Project File</h3>
+        <div id="upload-section" style="display:none;">
+          <input type="file" id="projectFile">
+          <button onclick="uploadFile()">Upload</button>
+          <p id="upload-msg"></p>
+        </div>
+        <p class="subtle">Create a project first to enable file uploads.</p>
+      </div>
+    </section>
+
+    <div id="deadline-management-section" class="panel">
+      <h3 class="panel-title">Submission Deadlines (Teacher/Admin)</h3>
+      <div class="dashboard-grid">
+        <div class="panel">
+          <input id="deadline-title" placeholder="Deadline title (e.g. Minor Review 1)">
+          <select id="deadline-type">
+            <option value="major">Major</option>
+            <option value="minor">Minor</option>
+          </select>
+          <input id="deadline-date" type="datetime-local">
+          <input id="deadline-description" placeholder="Description (optional)">
+          <button onclick="createDeadline()">Create Deadline</button>
+          <p id="deadline-msg"></p>
+        </div>
+        <div class="panel">
+          <button class="secondary" onclick="loadDeadlines()">Refresh Deadlines</button>
+          <div id="deadlines-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="member-management-section" class="panel">
+      <h3 class="panel-title">Project Member Management (Teacher/Admin)</h3>
+      <div>
+        <select id="member-deadline-select">
+          <option value="">Filter projects by deadline</option>
+        </select>
+        <button class="secondary" onclick="loadProjectsByDeadline()">Load Projects under deadline</button>
+        <div id="deadline-projects-list"></div>
+        <input id="member-project-id" type="number" placeholder="Project ID (from list above)">
+        <select id="member-user-select">
+          <option value="">Select user to add</option>
+        </select>
+        <button onclick="addProjectMember()">Add Member</button>
+        <p id="member-msg"></p>
+        <button class="secondary" onclick="loadProjectMembers()">Load Members</button>
+        <div id="project-members-list"></div>
       </div>
     </div>
   </div>
 
+  <script src="/socket.io/socket.io.js"></script>
   <script src="/js/main.js"></script>
 </body>
 </html>

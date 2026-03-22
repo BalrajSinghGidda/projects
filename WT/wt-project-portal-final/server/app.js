@@ -28,6 +28,8 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 // 🔥 ROUTES AFTER SESSION
 const notificationController = require("./controllers/notificationController");
 notificationController.setIO(io);
+const projectController = require("./controllers/projectController");
+projectController.setIO(io);
 const notificationRoutes = require("./routes/notificationRoutes");
 app.use("/api/notifications", notificationRoutes);
 
@@ -36,6 +38,10 @@ app.use("/api/auth", authRoutes);
 
 const projectRoutes = require("./routes/projectRoutes");
 app.use("/api/projects", projectRoutes);
+const userRoutes = require("./routes/userRoutes");
+app.use("/api/users", userRoutes);
+const deadlineRoutes = require("./routes/deadlineRoutes");
+app.use("/api/deadlines", deadlineRoutes);
 
 const absenceRoutes = require("./routes/absenceRoutes");
 app.use("/api/absence", absenceRoutes);
@@ -74,4 +80,3 @@ const PORT = 3000;
 server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-

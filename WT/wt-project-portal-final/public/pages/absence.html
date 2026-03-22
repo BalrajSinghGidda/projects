@@ -8,24 +8,45 @@
 <body>
   <nav>
     <a href="/pages/dashboard.html">Dashboard</a>
-    <a href="/pages/project.html">Create Project</a>
+    <a href="/pages/project.html">Projects</a>
     <a href="/pages/notifications.html">Notifications</a>
     <a href="/pages/absence.html">Absence</a>
     <button onclick="logout()">Logout</button>
   </nav>
 
   <div class="container">
-    <h2>Submit Absence</h2>
-    <div class="card">
-      <input id="reason" placeholder="Reason">
-      <input id="date" type="date">
-      <button onclick="submitAbsence()">Submit</button>
+    <section class="page-header">
+      <h2 class="page-title">Absence Center</h2>
+      <p class="subtle">Submit viva/submission absence reasons and view request status.</p>
+    </section>
+
+    <section class="dashboard-grid">
+      <div class="panel" id="absence-submit-section">
+        <h3 class="panel-title">Submit Absence Request</h3>
+        <input id="reason" placeholder="Reason">
+        <input id="date" type="date">
+        <button onclick="submitAbsence()">Submit</button>
+      </div>
+
+      <div class="panel">
+        <h3 class="panel-title">Workflow</h3>
+        <ul class="flat-list">
+          <li>Student submits reason with date.</li>
+          <li>Teacher/Admin can review request visibility.</li>
+          <li>Status currently shown as pending/approved/rejected.</li>
+        </ul>
+      </div>
+    </section>
+
+    <div id="absence-review-section" class="panel">
+      <h3 class="panel-title">Absence Review (Teacher/Admin)</h3>
+      <p class="subtle">Use the Approve/Reject actions directly from the request list.</p>
     </div>
 
-    <hr>
-
-    <h2>All Absence Requests</h2>
-    <div id="absences-list"></div>
+    <div class="panel">
+      <h3 class="panel-title">Absence Requests</h3>
+      <div id="absences-list"></div>
+    </div>
   </div>
 
   <script src="/js/main.js"></script>

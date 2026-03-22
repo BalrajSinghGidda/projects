@@ -33,3 +33,23 @@ exports.getAllAbsences = (req, res) => {
   }
 };
 
+exports.updateAbsenceStatus = (req, res) => {
+  const actor = req.session.user;
+  if (!actor || (actor.role !== "teacher" && actor.role !== "admin")) {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
+  const absenceId = req.params.id;
+  const { status } = req.body;
+  const allowed = ["approved", "rejected"];
+  if (!allowed.includes(status)) {
+    return res.status(400).json({ message: "status must be approved or rejected" });
+  }
+
+  Absence.updateStatus(absenceId, status, actor.id, (err, result) => {
+    if (err) return res.status(500).json({ error: err });
+    if (!result.affectedRows) return res.status(404).json({ message: "Absence request not found" });
+
+    res.json({ message: `Absence request ${status}` });
+  });
+};

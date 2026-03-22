@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Teacher Dashboard - WT Portal</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="role-teacher">
+  <nav>
+    <a class="active" href="/pages/teacher-dashboard.html">Dashboard</a>
+    <a href="/pages/project.html">Projects & Members</a>
+    <a href="/pages/notifications.html">Notifications</a>
+    <a href="/pages/absence.html">Absence</a>
+    <span class="role-badge">TEACHER PORTAL</span>
+    <button onclick="logout()">Logout</button>
+  </nav>
+
+  <div class="container">
+    <section class="page-header">
+      <h2 class="page-title">Teacher Command Center</h2>
+      <p class="subtle">Extended student features with class-level tracking and team management.</p>
+    </section>
+
+    <section class="dashboard-grid">
+      <div class="panel">
+        <h3 class="panel-title">Quick Actions</h3>
+        <div class="actions">
+          <button onclick="loadMyProjects()">My Projects</button>
+          <button onclick="loadAllProjects()">All Projects</button>
+          <button onclick="loadDashboardStats()">Project Stats</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 class="panel-title">Teacher Controls</h3>
+        <ul class="flat-list">
+          <li>Manage project members from the Projects page.</li>
+          <li>Send class announcements to all students.</li>
+          <li>Review absence submissions with context.</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="panel">
+      <h3 class="panel-title">Live Output</h3>
+      <div id="output"></div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>
