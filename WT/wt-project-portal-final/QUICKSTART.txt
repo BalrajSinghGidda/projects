@@ -1,0 +1,96 @@
+╔═══════════════════════════════════════════════════════════════════════╗
+║           🎓 WT PROJECT PORTAL - QUICK START GUIDE                    ║
+╚═══════════════════════════════════════════════════════════════════════╝
+
+📦 PROJECT TYPE: Node.js + Express + MySQL Web Application
+
+═══════════════════════════════════════════════════════════════════════
+🚀 QUICKEST WAY TO RUN (NixOS):
+═══════════════════════════════════════════════════════════════════════
+
+1. Start MySQL and import database:
+   $ sudo systemctl start mysql
+   $ mysql -u connectBase -pconnectBase wt_portal < database-schema.sql
+   
+   (If user doesn't exist, create it first - see SETUP.md)
+
+2. Start the application:
+   $ npm start
+
+3. Open browser:
+   → http://localhost:3000
+
+═══════════════════════════════════════════════════════════════════════
+👤 DEFAULT LOGIN CREDENTIALS:
+═══════════════════════════════════════════════════════════════════════
+
+Choose one of these accounts to login:
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ 🔑 ADMIN ACCOUNT                                                     │
+│ Email:    admin@example.com                                         │
+│ Password: admin123                                                  │
+├─────────────────────────────────────────────────────────────────────┤
+│ 👨‍🏫 TEACHER ACCOUNT                                                   │
+│ Email:    teacher@example.com                                       │
+│ Password: teacher123                                                │
+├─────────────────────────────────────────────────────────────────────┤
+│ 👨‍🎓 STUDENT ACCOUNT                                                   │
+│ Email:    student@example.com                                       │
+│ Password: student123                                                │
+└─────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════
+✅ CURRENT CONFIGURATION (from .env):
+═══════════════════════════════════════════════════════════════════════
+
+• MySQL Host:     localhost
+• MySQL User:     connectBase
+• MySQL Password: connectBase
+• Database Name:  wt_portal
+• Web Server:     http://localhost:3000
+
+═══════════════════════════════════════════════════════════════════════
+📚 AVAILABLE PAGES:
+═══════════════════════════════════════════════════════════════════════
+
+• http://localhost:3000/pages/login.html       - Login page
+• http://localhost:3000/pages/dashboard.html   - Main dashboard
+• http://localhost:3000/pages/project.html     - Projects management
+• http://localhost:3000/pages/absence.html     - Absence requests
+• http://localhost:3000/pages/notifications.html - Notifications
+
+═══════════════════════════════════════════════════════════════════════
+🆕 HOW TO ADD NEW USERS:
+═══════════════════════════════════════════════════════════════════════
+
+Method 1 - Via API (when server is running):
+$ curl -X POST http://localhost:3000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John Doe","email":"john@example.com","password":"pass123","role":"student"}'
+
+Method 2 - Via Database:
+# First, generate password hash:
+$ node -e "require('bcrypt').hash('mypassword',10).then(console.log)"
+
+# Then insert:
+$ mysql -u connectBase -pconnectBase wt_portal
+mysql> INSERT INTO users (name, email, password, role) 
+       VALUES ('Name', 'email@example.com', 'HASH_HERE', 'student');
+
+═══════════════════════════════════════════════════════════════════════
+🛠️ USEFUL COMMANDS:
+═══════════════════════════════════════════════════════════════════════
+
+Start server:          npm start
+Start with auto-reload: npm run dev
+Test database:         curl http://localhost:3000/test-db
+View database users:   mysql -u connectBase -pconnectBase wt_portal \
+                            -e "SELECT id,name,email,role FROM users;"
+
+═══════════════════════════════════════════════════════════════════════
+📖 MORE DETAILS:
+═══════════════════════════════════════════════════════════════════════
+
+See SETUP.md for complete installation and troubleshooting guide.
+
