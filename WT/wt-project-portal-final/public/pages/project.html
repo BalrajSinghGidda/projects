@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Create Project - WT Portal</title>
   <link rel="stylesheet" href="/css/styles.css">
 </head>
@@ -17,7 +18,6 @@
   <div class="container">
     <section class="page-header">
       <h2 class="page-title">Project Workspace</h2>
-      <p class="subtle">Create and maintain major/minor projects in a flat workflow view.</p>
       <p id="project-policy-msg" class="subtle"></p>
     </section>
 
@@ -44,7 +44,6 @@
           <button onclick="uploadFile()">Upload</button>
           <p id="upload-msg"></p>
         </div>
-        <p class="subtle">Create a project first to enable file uploads.</p>
       </div>
     </section>
 
@@ -58,7 +57,7 @@
             <option value="minor">Minor</option>
           </select>
           <input id="deadline-date" type="datetime-local">
-          <input id="deadline-description" placeholder="Description (optional)">
+          <input id="deadline-description" placeholder="Description">
           <button onclick="createDeadline()">Create Deadline</button>
           <p id="deadline-msg"></p>
         </div>

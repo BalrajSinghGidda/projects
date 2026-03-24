@@ -4,10 +4,52 @@ const ROLE_DASHBOARD = {
   teacher: "/pages/teacher-dashboard.html",
   admin: "/pages/admin-dashboard.html"
 };
+const THEME_STORAGE_KEY = "wt-portal-theme";
 
 let currentProjectId = null;
 let currentUser = null;
 let socket = null;
+
+function resolveTheme() {
+  const saved = localStorage.getItem(THEME_STORAGE_KEY);
+  if (saved === "dark" || saved === "light") {
+    return saved;
+  }
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function applyTheme(theme) {
+  const isDark = theme === "dark";
+  document.body.classList.toggle("theme-dark", isDark);
+  document.querySelectorAll(".theme-toggle-btn").forEach((btn) => {
+    btn.innerText = isDark ? "Light mode" : "Dark mode";
+  });
+}
+
+function toggleTheme() {
+  const nextTheme = document.body.classList.contains("theme-dark") ? "light" : "dark";
+  localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  applyTheme(nextTheme);
+}
+
+function ensureThemeToggle() {
+  if (document.querySelector(".theme-toggle-btn")) {
+    return;
+  }
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "secondary theme-toggle-btn";
+  btn.addEventListener("click", toggleTheme);
+
+  const nav = document.querySelector("nav");
+  if (nav) {
+    nav.appendChild(btn);
+  } else {
+    btn.classList.add("floating-theme-toggle");
+    document.body.appendChild(btn);
+  }
+}
 
 function dashboardPathByRole(role) {
   return ROLE_DASHBOARD[role] || ROLE_DASHBOARD.student;
@@ -124,6 +166,11 @@ function initSocket() {
 document.addEventListener("DOMContentLoaded", async () => {
   const path = window.location.pathname;
   const page = path.split("/").pop();
+  const initialTheme = resolveTheme();
+
+  applyTheme(initialTheme);
+  ensureThemeToggle();
+  applyTheme(initialTheme);
 
   if (page !== "login.html") {
     try {
@@ -160,6 +207,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (page === "notifications.html") loadNotifications();
   if (page === "absence.html") loadAbsences();
+  if (page === "teacher-dashboard.html" || page === "admin-dashboard.html") {
+    loadDashboardStats();
+  }
   if (page === "project.html") {
     loadDeadlines();
     if (isTeacherOrAdmin()) {
@@ -273,6 +323,10 @@ async function createDeadline() {
 }
 
 async function loadDeadlines() {
+  if (!currentUser || (currentUser.role !== "student" && currentUser.role !== "teacher" && currentUser.role !== "admin")) {
+    return;
+  }
+
   try {
     const res = await fetch(`${API}/deadlines`, { credentials: "include" });
     const data = await res.json();
@@ -298,14 +352,15 @@ async function loadDeadlines() {
       `).join("");
     }
 
+    const rendered = data.map((d) => `
+      <div class="item">
+        <strong>Deadline #${d.id}</strong> - ${d.title} (${d.type})<br>
+        ${new Date(d.due_date).toLocaleString()} - ${d.status}
+      </div>
+    `).join("");
     const output = document.getElementById("output");
-    if (output && window.location.pathname.includes("admin-dashboard.html")) {
-      output.innerHTML = data.map((d) => `
-        <div class="item">
-          <strong>Deadline #${d.id}</strong> - ${d.title} (${d.type})<br>
-          ${new Date(d.due_date).toLocaleString()} - ${d.status}
-        </div>
-      `).join("");
+    if (output && (window.location.pathname.includes("admin-dashboard.html") || window.location.pathname.includes("teacher-dashboard.html"))) {
+      output.innerHTML = rendered || `<div class="item">No deadlines found.</div>`;
     }
   } catch (err) {
     console.error(err);
@@ -424,6 +479,12 @@ async function loadMyProjects() {
 
 // 📊 LOAD ALL PROJECTS
 async function loadAllProjects() {
+  if (!currentUser || (currentUser.role !== "teacher" && currentUser.role !== "admin")) {
+    const output = document.getElementById("output");
+    if (output) output.innerText = "Access denied";
+    return;
+  }
+
   try {
     const res = await fetch(`${API}/projects/all`, { credentials: "include" });
     const data = await res.json();
@@ -455,6 +516,22 @@ async function loadDashboardStats() {
     if (!res.ok) throw new Error("Failed to load stats");
 
     const output = document.getElementById("output");
+    const teacherTotal = document.getElementById("teacher-kpi-total");
+    const teacherPending = document.getElementById("teacher-kpi-pending");
+    const teacherDeadlines = document.getElementById("teacher-kpi-deadlines");
+    const adminUsers = document.getElementById("admin-kpi-users");
+    const adminProjects = document.getElementById("admin-kpi-projects");
+    const adminPending = document.getElementById("admin-kpi-pending");
+    const adminDeadlines = document.getElementById("admin-kpi-deadlines");
+
+    if (teacherTotal) teacherTotal.innerText = data.total_projects || 0;
+    if (teacherPending) teacherPending.innerText = data.pending_absences || 0;
+    if (teacherDeadlines) teacherDeadlines.innerText = data.open_deadlines || 0;
+    if (adminUsers) adminUsers.innerText = data.total_users || 0;
+    if (adminProjects) adminProjects.innerText = data.total_projects || 0;
+    if (adminPending) adminPending.innerText = data.pending_absences || 0;
+    if (adminDeadlines) adminDeadlines.innerText = data.open_deadlines || 0;
+
     if (output) {
       output.innerHTML = `
         <div class="item">
@@ -474,6 +551,12 @@ async function loadDashboardStats() {
 }
 
 async function loadAllUsers() {
+  if (!currentUser || currentUser.role !== "admin") {
+    const output = document.getElementById("output");
+    if (output) output.innerText = "Access denied";
+    return;
+  }
+
   try {
     const res = await fetch(`${API}/users`, { credentials: "include" });
     const data = await res.json();
@@ -516,6 +599,10 @@ async function loadAllUsersForMemberSelect() {
 }
 
 async function addProjectMember() {
+  if (!isTeacherOrAdmin()) {
+    return;
+  }
+
   const projectId = Number(document.getElementById("member-project-id").value);
   const userId = Number(document.getElementById("member-user-select").value);
   const msg = document.getElementById("member-msg");
@@ -545,6 +632,8 @@ async function addProjectMember() {
 }
 
 async function loadProjectMembers() {
+  if (!currentUser) return;
+
   const projectId = Number(document.getElementById("member-project-id").value);
   const msg = document.getElementById("member-msg");
   if (!projectId) {
@@ -582,6 +671,10 @@ function renderProjectMembers(members, projectId) {
 }
 
 async function removeProjectMember(projectId, userId) {
+  if (!isTeacherOrAdmin()) {
+    return;
+  }
+
   const msg = document.getElementById("member-msg");
   try {
     const res = await fetch(`${API}/projects/${projectId}/members/${userId}`, {
@@ -599,6 +692,10 @@ async function removeProjectMember(projectId, userId) {
 
 // 🔔 SEND NOTIFICATION
 async function sendNotification() {
+  if (!isTeacherOrAdmin()) {
+    return;
+  }
+
   const title = document.getElementById("ntitle").value;
   const message = document.getElementById("nmsg").value;
 
@@ -644,6 +741,10 @@ async function loadNotifications() {
 
 // 🚫 ABSENCE
 async function submitAbsence() {
+  if (!currentUser || currentUser.role !== "student") {
+    return;
+  }
+
   const reason = document.getElementById("reason").value;
   const date = document.getElementById("date").value;
 
@@ -707,6 +808,10 @@ async function loadAbsences() {
 }
 
 async function updateAbsenceStatus(absenceId, status) {
+  if (!isTeacherOrAdmin()) {
+    return;
+  }
+
   try {
     const res = await fetch(`${API}/absence/${absenceId}/status`, {
       method: "PATCH",

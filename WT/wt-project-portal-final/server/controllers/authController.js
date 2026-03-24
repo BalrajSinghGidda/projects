@@ -4,15 +4,27 @@ const User = require("../models/userModel");
 // REGISTER
 exports.register = async (req, res) => {
   const { name, email, password, role } = req.body;
+  const requester = req.session && req.session.user ? req.session.user : null;
 
   if (!name || !email || !password) {
     return res.status(400).json({ message: "Missing fields" });
   }
 
+  let finalRole = "student";
+  if (requester && requester.role === "admin") {
+    const allowedRoles = ["student", "teacher", "admin"];
+    if (role && !allowedRoles.includes(role)) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
+    finalRole = role || "student";
+  } else if (role && role !== "student") {
+    return res.status(403).json({ message: "Only admin can assign teacher/admin roles" });
+  }
+
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    User.create(name, email, hashedPassword, role || "student", (err, result) => {
+    User.create(name, email, hashedPassword, finalRole, (err, result) => {
       if (err) {
         if (err.code === "ER_DUP_ENTRY") {
           return res.status(400).json({ message: "Email already exists" });
@@ -72,4 +84,3 @@ exports.me = (req, res) => {
   }
   res.json(req.session.user);
 };
-

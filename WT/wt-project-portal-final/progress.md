@@ -38,6 +38,9 @@ Implemented modules:
 - Users API: teacher/admin user listing for maintenance/member assignment
 - Role-aware frontend behavior: page access redirect + feature visibility rules
 - UI system: MS Office 2013/2016-inspired flat design with role-based theming
+- RBAC hardening: route-level role middleware + project ownership checks for reads/uploads
+- Role hierarchy UX: student (minimal), teacher (operational KPIs), admin (governance KPIs)
+- QoL UX: dark mode toggle, persistent theme preference, and mobile-first responsive behavior
 
 Frontend pages present:
 - `public/pages/login.html`
@@ -90,6 +93,11 @@ If schema is not imported yet, these users do not exist in DB.
 - Start implementation from “Pending Work” list above.
 
 ## Change Log
+- 2026-03-22T21:57:20Z | major | Added global dark mode toggle for all users with persisted preference (`localStorage`) and automatic theme application. | files: `public/js/main.js`, `public/css/styles.css`
+- 2026-03-22T21:57:20Z | major | Added responsive/mobile optimization: viewport meta tags on all pages, improved nav/button/list behavior across breakpoints, and small-screen layout fixes. | files: `public/css/styles.css`, `public/pages/*.html`
+- 2026-03-22T21:38:07Z | major | Hardened RBAC across routes with reusable role middleware; blocked unauthorized role actions and added project-level access checks for project reads/uploads. | files: `server/middleware/roleMiddleware.js`, `server/routes/authRoutes.js`, `server/routes/projectRoutes.js`, `server/routes/absenceRoutes.js`, `server/routes/notificationRoutes.js`, `server/routes/dashboardRoutes.js`, `server/routes/userRoutes.js`, `server/routes/deadlineRoutes.js`, `server/routes/uploadRoutes.js`, `server/controllers/projectController.js`, `server/controllers/authController.js`
+- 2026-03-22T21:38:07Z | major | Refined role hierarchy in dashboards with clear functional tiers (student < teacher < admin) and KPI cards for teacher/admin. | files: `public/pages/student-dashboard.html`, `public/pages/teacher-dashboard.html`, `public/pages/admin-dashboard.html`, `public/js/main.js`
+- 2026-03-22T21:38:07Z | minor | Removed extra explanatory text from operational pages for cleaner task-first UX. | files: `public/pages/project.html`, `public/pages/notifications.html`, `public/pages/absence.html`
 - 2026-03-22T21:03:35Z | major | Fixed absence visibility issues on legacy DBs by adding runtime schema migrations/fallback queries; student requests now appear for teacher/admin and student sees updated decision status. | files: `server/config/db.js`, `server/models/absenceModel.js`, `public/js/main.js`
 - 2026-03-22T21:03:35Z | minor | Hid student project submission panel for teacher/admin and added explicit policy messaging. | files: `public/pages/project.html`, `public/js/main.js`
 - 2026-03-22T21:03:35Z | minor | Fixed admin "Absence Queue" action to render absence list in dashboard output panel. | files: `public/js/main.js`

@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Admin Dashboard - WT Portal</title>
   <link rel="stylesheet" href="/css/styles.css">
 </head>
@@ -18,34 +19,35 @@
   <div class="container">
     <section class="page-header">
       <h2 class="page-title">Admin Operations Console</h2>
-      <p class="subtle">Maintenance-focused portal for platform visibility and governance.</p>
     </section>
 
-    <section class="dashboard-grid">
-      <div class="panel">
-        <h3 class="panel-title">Admin Maintenance Actions</h3>
-        <div class="actions">
-          <button onclick="loadAllProjects()">All Projects</button>
-          <button onclick="loadAllUsers()">All Users</button>
-          <button onclick="loadDashboardStats()">System Stats</button>
-          <button onclick="loadAbsences()">Absence Queue</button>
-          <button onclick="loadDeadlines()">Submission Deadlines</button>
-        </div>
+    <section class="kpi-grid" id="admin-kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-value" id="admin-kpi-users">-</span>
+        <span class="kpi-label">Users</span>
       </div>
-
-      <div class="panel">
-        <h3 class="panel-title">Admin Focus</h3>
-        <ul class="flat-list">
-          <li>User oversight: student/teacher/admin account visibility.</li>
-          <li>Submission governance: deadline tracking and alignment.</li>
-          <li>Academic operations: absence queue and process monitoring.</li>
-          <li>Project integrity: member corrections and submission audits.</li>
-        </ul>
+      <div class="kpi-card">
+        <span class="kpi-value" id="admin-kpi-projects">-</span>
+        <span class="kpi-label">Projects</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-value" id="admin-kpi-pending">-</span>
+        <span class="kpi-label">Pending Absences</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-value" id="admin-kpi-deadlines">-</span>
+        <span class="kpi-label">Open Deadlines</span>
       </div>
     </section>
 
     <div class="panel">
-      <h3 class="panel-title">Live Output</h3>
+      <div class="actions">
+        <button onclick="loadAllUsers()">Users</button>
+        <button onclick="loadAllProjects()">Projects</button>
+        <button onclick="loadAbsences()">Absences</button>
+        <button onclick="loadDeadlines()">Deadlines</button>
+        <button onclick="loadDashboardStats()">Refresh KPIs</button>
+      </div>
       <div id="output"></div>
     </div>
   </div>

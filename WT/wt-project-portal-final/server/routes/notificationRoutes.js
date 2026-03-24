@@ -2,11 +2,10 @@ const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/notificationController");
 const auth = require("../middleware/authMiddleware");
+const role = require("../middleware/roleMiddleware");
 
-// teacher/admin only (you can later restrict by role)
-router.post("/send", auth, controller.sendNotification);
+router.post("/send", auth, role(["teacher", "admin"]), controller.sendNotification);
 
-router.get("/all", auth, controller.getNotifications);
+router.get("/all", auth, role(["student", "teacher", "admin"]), controller.getNotifications);
 
 module.exports = router;
-

@@ -86,13 +86,28 @@ exports.getMyProjects = (req, res) => {
   });
 };
 
+function ensureProjectAccess(actor, projectId, res, onAllowed) {
+  if (actor.role === "teacher" || actor.role === "admin") {
+    return onAllowed();
+  }
+
+  Project.isMember(projectId, actor.id, (memberErr, rows) => {
+    if (memberErr) return res.status(500).json({ error: memberErr });
+    if (!rows.length) return res.status(403).json({ message: "Access denied" });
+    onAllowed();
+  });
+}
+
 // GET MEMBERS OF A PROJECT
 exports.getProjectMembers = (req, res) => {
+  const actor = req.session.user;
   const { id } = req.params;
 
-  Project.getMembers(id, (err, results) => {
-    if (err) return res.status(500).json({ error: err });
-    res.json(results);
+  ensureProjectAccess(actor, id, res, () => {
+    Project.getMembers(id, (err, results) => {
+      if (err) return res.status(500).json({ error: err });
+      res.json(results);
+    });
   });
 };
 
@@ -178,14 +193,22 @@ exports.removeProjectMember = (req, res) => {
 
 
 exports.getProjectById = (req,res)=>{
+  const actor = req.session.user;
   const id=req.params.id;
-  Project.getById(id,(err,results)=>{
-    if(err) return res.status(500).json({error:err});
-    res.json(results[0]);
+  ensureProjectAccess(actor, id, res, () => {
+    Project.getById(id,(err,results)=>{
+      if(err) return res.status(500).json({error:err});
+      res.json(results[0]);
+    });
   });
 };
 
 exports.searchProjects = (req,res)=>{
+  const actor = req.session.user;
+  if (actor.role !== "teacher" && actor.role !== "admin") {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
   const {q,type}=req.query;
   Project.search(q,type,(err,results)=>{
     if(err) return res.status(500).json({error:err});

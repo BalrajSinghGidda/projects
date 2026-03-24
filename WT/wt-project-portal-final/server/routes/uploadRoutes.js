@@ -4,6 +4,8 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 const authMiddleware = require("../middleware/authMiddleware");
+const role = require("../middleware/roleMiddleware");
+const Project = require("../models/projectModel");
 
 // Configure Multer Storage
 const storage = multer.diskStorage({
@@ -35,10 +37,26 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-router.post("/project/:id", authMiddleware, upload.single("file"), (req, res) => {
+function ensureProjectMember(req, res, next) {
+  const projectId = req.params.id;
+  const userId = req.session.user.id;
+
+  Project.isMember(projectId, userId, (memberErr, rows) => {
+    if (memberErr) {
+      return res.status(500).json({ error: memberErr });
+    }
+    if (!rows.length) {
+      return res.status(403).json({ message: "You are not a member of this project" });
+    }
+    next();
+  });
+}
+
+router.post("/project/:id", authMiddleware, role(["student"]), ensureProjectMember, upload.single("file"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded" });
   }
+
   // Ideally, save file info to database here linked to req.params.id
   res.json({ message: "File uploaded successfully", file: req.file });
 });

@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Teacher Dashboard - WT Portal</title>
   <link rel="stylesheet" href="/css/styles.css">
 </head>
@@ -18,31 +19,29 @@
   <div class="container">
     <section class="page-header">
       <h2 class="page-title">Teacher Command Center</h2>
-      <p class="subtle">Extended student features with class-level tracking and team management.</p>
     </section>
 
-    <section class="dashboard-grid">
-      <div class="panel">
-        <h3 class="panel-title">Quick Actions</h3>
-        <div class="actions">
-          <button onclick="loadMyProjects()">My Projects</button>
-          <button onclick="loadAllProjects()">All Projects</button>
-          <button onclick="loadDashboardStats()">Project Stats</button>
-        </div>
+    <section class="kpi-grid" id="teacher-kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-value" id="teacher-kpi-total">-</span>
+        <span class="kpi-label">Projects</span>
       </div>
-
-      <div class="panel">
-        <h3 class="panel-title">Teacher Controls</h3>
-        <ul class="flat-list">
-          <li>Manage project members from the Projects page.</li>
-          <li>Send class announcements to all students.</li>
-          <li>Review absence submissions with context.</li>
-        </ul>
+      <div class="kpi-card">
+        <span class="kpi-value" id="teacher-kpi-pending">-</span>
+        <span class="kpi-label">Pending Absences</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-value" id="teacher-kpi-deadlines">-</span>
+        <span class="kpi-label">Open Deadlines</span>
       </div>
     </section>
 
     <div class="panel">
-      <h3 class="panel-title">Live Output</h3>
+      <div class="actions">
+        <button onclick="loadAllProjects()">All Projects</button>
+        <button onclick="loadAbsences()">Absence Queue</button>
+        <button onclick="loadDashboardStats()">Refresh KPIs</button>
+      </div>
       <div id="output"></div>
     </div>
   </div>
