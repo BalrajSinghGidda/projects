@@ -1,0 +1,24 @@
+- Batch selection
+  - Student list
+  - Projects and mentors
+  - form style selection list for students to select mentors and groupmates.
+- Guidelines for both major and minor.
+- File formats
+- Syllabus reference
+- Ruberics
+- In case of collaboraation, connection with social media such as linkedin
+- Meeting scheduling
+- Synopsis and report things.
+- 2 step verifications
+- Best project lists support, selection, etc.
+
+- External Examee portal support
+  - previous project reports status
+  - best project lists
+  - Gallery (of sorts..)
+
+- Post-project portal
+  - Previous projects summary, WIP, TODO
+  - QUICKSTART
+  - Wiki
+  - Support for download (timed) (maybe git....) (gitea perhaps...)
