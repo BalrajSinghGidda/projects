@@ -16,6 +16,7 @@
       name = "cpp-devshell";
       buildInputs = [
         pkgs.gcc
+	pkgs.git
           pkgs.clang
           pkgs.cmake
           pkgs.ninja
