@@ -62,6 +62,52 @@ exports.createUser = async (req, res) => {
   }
 };
 
+exports.deleteUserByAdmin = (req, res) => {
+  const requester = req.session.user;
+  if (!requester || requester.role !== "admin") {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
+  const userId = Number(req.params.id);
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: "Invalid user id" });
+  }
+
+  if (requester.id === userId) {
+    return res.status(400).json({ message: "You cannot delete your own account" });
+  }
+
+  User.findById(userId, (findErr, users) => {
+    if (findErr) {
+      return res.status(500).json({ error: findErr });
+    }
+
+    if (!users.length) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const targetUser = users[0];
+    if (targetUser.role !== "student" && targetUser.role !== "teacher") {
+      return res.status(403).json({ message: "Only teacher and student users can be removed" });
+    }
+
+    User.deleteById(userId, (deleteErr, result) => {
+      if (deleteErr) {
+        if (deleteErr.code === "ER_ROW_IS_REFERENCED_2") {
+          return res.status(400).json({ message: "User cannot be deleted due to existing references" });
+        }
+        return res.status(500).json({ error: deleteErr });
+      }
+
+      if (!result.affectedRows) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({ message: "User deleted successfully" });
+    });
+  });
+};
+
 exports.requestUserRemoval = (req, res) => {
   const requester = req.session.user;
   if (!requester || (requester.role !== "teacher" && requester.role !== "admin")) {

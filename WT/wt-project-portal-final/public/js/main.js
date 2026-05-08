@@ -586,6 +586,9 @@ async function loadAllUsers() {
             <strong>${u.name}</strong> (${u.role})<br>
             ${u.email}
           </span>
+          ${u.role === "student" || u.role === "teacher"
+            ? `<button class="danger" onclick="removePortalUserAdmin(${u.id})">Remove</button>`
+            : ""}
         </div>
       `).join("");
     }
@@ -593,6 +596,36 @@ async function loadAllUsers() {
     console.error(err);
     const usersList = document.getElementById("users-list");
     if (usersList) usersList.innerText = err.message;
+  }
+}
+
+async function removePortalUserAdmin(userId) {
+  if (!currentUser || currentUser.role !== "admin") {
+    return;
+  }
+
+  const confirmDelete = window.confirm("Delete this login user?");
+  if (!confirmDelete) {
+    return;
+  }
+
+  const msg = document.getElementById("admin-user-msg");
+  try {
+    const res = await fetch(`${API}/users/${userId}`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+    const data = await res.json();
+    if (msg) msg.innerText = data.message || "Request completed";
+    if (!res.ok) {
+      return;
+    }
+
+    loadAllUsers();
+    loadRemovalRequests();
+  } catch (err) {
+    console.error(err);
+    if (msg) msg.innerText = "Failed to delete user.";
   }
 }
 
