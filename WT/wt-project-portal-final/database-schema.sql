@@ -14,6 +14,21 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- User removal requests (teacher submits, admin approves/rejects)
+CREATE TABLE IF NOT EXISTS user_removal_requests (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  target_user_id INT NOT NULL,
+  requested_by INT NOT NULL,
+  reason TEXT,
+  status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+  reviewed_by INT NULL,
+  reviewed_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (requested_by) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
 -- Submission deadlines table (teacher/admin managed)
 CREATE TABLE IF NOT EXISTS submission_deadlines (
   id INT AUTO_INCREMENT PRIMARY KEY,

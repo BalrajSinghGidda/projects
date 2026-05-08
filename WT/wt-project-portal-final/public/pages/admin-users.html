@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Users - WT Portal</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="role-admin">
+  <nav>
+    <a href="/pages/admin-dashboard.html">Dashboard</a>
+    <a class="active" href="/pages/admin-users.html">Users</a>
+    <a href="/pages/project.html">Project Maintenance</a>
+    <a href="/pages/notifications.html">Notifications</a>
+    <a href="/pages/absence.html">Absence</a>
+    <span class="role-badge">ADMIN PORTAL</span>
+    <button onclick="logout()">Logout</button>
+  </nav>
+
+  <div class="container">
+    <section class="page-header">
+      <h2 class="page-title">User Management</h2>
+      <p class="subtle">Create users and review removal approvals.</p>
+    </section>
+
+    <div class="panel">
+      <h3 class="panel-title">Create Login User</h3>
+      <input id="admin-user-name" placeholder="Full name">
+      <input id="admin-user-email" placeholder="Email">
+      <input id="admin-user-password" type="password" placeholder="Password">
+      <select id="admin-user-role">
+        <option value="student">Student</option>
+        <option value="teacher">Teacher</option>
+      </select>
+      <div class="actions">
+        <button onclick="addAdminManagedUser()">Add User</button>
+        <button class="secondary" onclick="loadAllUsers()">Refresh Users</button>
+      </div>
+      <p class="subtle" id="admin-user-msg"></p>
+    </div>
+
+    <div class="panel">
+      <h3 class="panel-title">Pending/Resolved Removal Requests</h3>
+      <div id="admin-removal-requests"></div>
+    </div>
+
+    <div class="panel">
+      <h3 class="panel-title">All Login Users</h3>
+      <div id="users-list"></div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>

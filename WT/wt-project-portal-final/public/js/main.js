@@ -210,6 +210,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (page === "teacher-dashboard.html" || page === "admin-dashboard.html") {
     loadDashboardStats();
   }
+  if (page === "admin-users.html") {
+    if (!currentUser || currentUser.role !== "admin") {
+      window.location.href = dashboardPathByRole(currentUser ? currentUser.role : "student");
+      return;
+    }
+    loadAllUsers();
+    loadRemovalRequests();
+  }
+  if (page === "teacher-users.html") {
+    if (!currentUser || currentUser.role !== "teacher") {
+      window.location.href = dashboardPathByRole(currentUser ? currentUser.role : "student");
+      return;
+    }
+    loadTeacherStudentUsers();
+    loadRemovalRequests();
+  }
   if (page === "project.html") {
     loadDeadlines();
     if (isTeacherOrAdmin()) {
@@ -552,8 +568,8 @@ async function loadDashboardStats() {
 
 async function loadAllUsers() {
   if (!currentUser || currentUser.role !== "admin") {
-    const output = document.getElementById("output");
-    if (output) output.innerText = "Access denied";
+    const usersList = document.getElementById("users-list");
+    if (usersList) usersList.innerText = "Access denied";
     return;
   }
 
@@ -562,24 +578,21 @@ async function loadAllUsers() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Failed to load users");
 
-    const output = document.getElementById("output");
-    if (output) {
-      output.innerHTML = data.map((u) => `
+    const usersList = document.getElementById("users-list");
+    if (usersList) {
+      usersList.innerHTML = data.map((u) => `
         <div class="item item-row">
           <span>
             <strong>${u.name}</strong> (${u.role})<br>
             ${u.email}
           </span>
-          ${u.role === "student" || u.role === "teacher"
-            ? `<button class="danger" onclick="removePortalUser(${u.id})">Remove</button>`
-            : ""}
         </div>
       `).join("");
     }
   } catch (err) {
     console.error(err);
-    const output = document.getElementById("output");
-    if (output) output.innerText = err.message;
+    const usersList = document.getElementById("users-list");
+    if (usersList) usersList.innerText = err.message;
   }
 }
 
@@ -617,7 +630,6 @@ async function addAdminManagedUser() {
     document.getElementById("admin-user-password").value = "";
     document.getElementById("admin-user-role").value = "student";
     loadAllUsers();
-    loadDashboardStats();
   } catch (err) {
     console.error(err);
     if (msg) msg.innerText = "Failed to create user.";
@@ -655,27 +667,136 @@ async function addTeacherStudentUser() {
     document.getElementById("teacher-student-name").value = "";
     document.getElementById("teacher-student-email").value = "";
     document.getElementById("teacher-student-password").value = "";
+    loadTeacherStudentUsers();
   } catch (err) {
     console.error(err);
     if (msg) msg.innerText = "Failed to create student user.";
   }
 }
 
-async function removePortalUser(userId) {
-  if (!currentUser || currentUser.role !== "admin") {
+async function loadTeacherStudentUsers() {
+  if (!currentUser || currentUser.role !== "teacher") {
     return;
   }
 
-  const confirmDelete = window.confirm("Delete this login user?");
-  if (!confirmDelete) {
+  try {
+    const res = await fetch(`${API}/users?role=student`, { credentials: "include" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to load student users");
+
+    const usersList = document.getElementById("users-list");
+    if (!usersList) return;
+
+    usersList.innerHTML = data.map((u) => `
+      <div class="item item-row">
+        <span>
+          <strong>${u.name}</strong> (${u.role})<br>
+          ${u.email}
+        </span>
+        <button class="danger" onclick="requestUserRemoval(${u.id})">Request Removal</button>
+      </div>
+    `).join("");
+  } catch (err) {
+    console.error(err);
+    const usersList = document.getElementById("users-list");
+    if (usersList) usersList.innerText = err.message;
+  }
+}
+
+async function requestUserRemoval(userId) {
+  if (!currentUser || (currentUser.role !== "teacher" && currentUser.role !== "admin")) {
+    return;
+  }
+
+  const reason = window.prompt("Optional reason for removal request:", "");
+  const msg = document.getElementById(currentUser.role === "admin" ? "admin-user-msg" : "teacher-user-msg");
+  try {
+    const res = await fetch(`${API}/users/${userId}/removal-requests`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ reason })
+    });
+    const data = await res.json();
+    if (msg) msg.innerText = data.message || "Request completed";
+    if (!res.ok) {
+      return;
+    }
+
+    loadRemovalRequests();
+    if (currentUser.role === "teacher") {
+      loadTeacherStudentUsers();
+    }
+  } catch (err) {
+    console.error(err);
+    if (msg) msg.innerText = "Failed to submit removal request.";
+  }
+}
+
+async function loadRemovalRequests() {
+  if (!currentUser || (currentUser.role !== "teacher" && currentUser.role !== "admin")) {
+    return;
+  }
+
+  const containerId = currentUser.role === "admin" ? "admin-removal-requests" : "teacher-removal-requests";
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  try {
+    const res = await fetch(`${API}/users/removal-requests`, { credentials: "include" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to load removal requests");
+
+    if (!data.length) {
+      container.innerHTML = `<div class="item">No removal requests yet.</div>`;
+      return;
+    }
+
+    if (currentUser.role === "admin") {
+      container.innerHTML = data.map((req) => `
+        <div class="item">
+          <strong>${req.target_name || "Deleted User"}</strong> (${req.target_role || "n/a"}) - ${req.target_email || "n/a"}<br>
+          Requested by: ${req.requester_name}<br>
+          Reason: ${req.reason || "No reason provided"}<br>
+          Status: <strong>${req.status}</strong>
+          ${req.reviewer_name ? `<br>Reviewed by: ${req.reviewer_name}` : ""}
+          ${req.status === "pending" ? `
+            <div class="actions">
+              <button onclick="reviewRemovalRequest(${req.id}, 'approved')">Approve & Remove</button>
+              <button class="danger" onclick="reviewRemovalRequest(${req.id}, 'rejected')">Reject</button>
+            </div>
+          ` : ""}
+        </div>
+      `).join("");
+      return;
+    }
+
+    container.innerHTML = data.map((req) => `
+      <div class="item">
+        <strong>${req.target_name || "Deleted User"}</strong> - ${req.target_email || "n/a"}<br>
+        Reason: ${req.reason || "No reason provided"}<br>
+        Status: <strong>${req.status}</strong>
+        ${req.reviewer_name ? `<br>Reviewed by: ${req.reviewer_name}` : ""}
+      </div>
+    `).join("");
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = `<div class="item">Error loading requests: ${err.message}</div>`;
+  }
+}
+
+async function reviewRemovalRequest(requestId, status) {
+  if (!currentUser || currentUser.role !== "admin") {
     return;
   }
 
   const msg = document.getElementById("admin-user-msg");
   try {
-    const res = await fetch(`${API}/users/${userId}`, {
-      method: "DELETE",
-      credentials: "include"
+    const res = await fetch(`${API}/users/removal-requests/${requestId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ status })
     });
     const data = await res.json();
     if (msg) msg.innerText = data.message || "Request completed";
@@ -684,10 +805,10 @@ async function removePortalUser(userId) {
     }
 
     loadAllUsers();
-    loadDashboardStats();
+    loadRemovalRequests();
   } catch (err) {
     console.error(err);
-    if (msg) msg.innerText = "Failed to delete user.";
+    if (msg) msg.innerText = "Failed to review removal request.";
   }
 }
 

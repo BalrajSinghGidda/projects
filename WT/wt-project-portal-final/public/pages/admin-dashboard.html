@@ -9,6 +9,7 @@
 <body class="role-admin">
   <nav>
     <a class="active" href="/pages/admin-dashboard.html">Dashboard</a>
+    <a href="/pages/admin-users.html">Users</a>
     <a href="/pages/project.html">Project Maintenance</a>
     <a href="/pages/notifications.html">Notifications</a>
     <a href="/pages/absence.html">Absence</a>
@@ -41,24 +42,7 @@
     </section>
 
     <div class="panel">
-      <h3 class="panel-title">Manage Login Users</h3>
-      <input id="admin-user-name" placeholder="Full name">
-      <input id="admin-user-email" placeholder="Email">
-      <input id="admin-user-password" type="password" placeholder="Password">
-      <select id="admin-user-role">
-        <option value="student">Student</option>
-        <option value="teacher">Teacher</option>
-      </select>
       <div class="actions">
-        <button onclick="addAdminManagedUser()">Add User</button>
-        <button class="secondary" onclick="loadAllUsers()">Refresh User List</button>
-      </div>
-      <p class="subtle" id="admin-user-msg"></p>
-    </div>
-
-    <div class="panel">
-      <div class="actions">
-        <button onclick="loadAllUsers()">Users</button>
         <button onclick="loadAllProjects()">Projects</button>
         <button onclick="loadAbsences()">Absences</button>
         <button onclick="loadDeadlines()">Deadlines</button>

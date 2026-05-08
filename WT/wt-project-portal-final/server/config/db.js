@@ -33,7 +33,22 @@ function runMigrations() {
     `,
     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS deadline_id INT NULL",
     "ALTER TABLE absence_requests ADD COLUMN IF NOT EXISTS reviewed_by INT NULL",
-    "ALTER TABLE absence_requests ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP NULL"
+    "ALTER TABLE absence_requests ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP NULL",
+    `
+      CREATE TABLE IF NOT EXISTS user_removal_requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        target_user_id INT NOT NULL,
+        requested_by INT NOT NULL,
+        reason TEXT,
+        status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+        reviewed_by INT NULL,
+        reviewed_at TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (requested_by) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+      )
+    `
   ];
 
   let index = 0;
