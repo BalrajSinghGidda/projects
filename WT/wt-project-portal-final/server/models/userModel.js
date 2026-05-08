@@ -16,6 +16,11 @@ const User = {
     db.query(sql, [id], callback);
   },
 
+  findWithPasswordById: (id, callback) => {
+    const sql = "SELECT id, name, email, password, role FROM users WHERE id = ?";
+    db.query(sql, [id], callback);
+  },
+
   list: (role, callback) => {
     let sql = "SELECT id, name, email, role FROM users";
     const params = [];
@@ -34,6 +39,16 @@ const User = {
     db.query(sql, [id], callback);
   },
 
+  updateNameById: (id, name, callback) => {
+    const sql = "UPDATE users SET name = ? WHERE id = ?";
+    db.query(sql, [name, id], callback);
+  },
+
+  updatePasswordById: (id, hashedPassword, callback) => {
+    const sql = "UPDATE users SET password = ? WHERE id = ?";
+    db.query(sql, [hashedPassword, id], callback);
+  },
+
   hasPendingRemovalRequest: (targetUserId, callback) => {
     const sql = `
       SELECT id
@@ -50,6 +65,69 @@ const User = {
       VALUES (?, ?, ?)
     `;
     db.query(sql, [targetUserId, requestedBy, reason || null], callback);
+  },
+
+  hasPendingPasswordChangeRequest: (targetUserId, callback) => {
+    const sql = `
+      SELECT id
+      FROM user_password_change_requests
+      WHERE target_user_id = ? AND status = 'pending'
+      LIMIT 1
+    `;
+    db.query(sql, [targetUserId], callback);
+  },
+
+  createPasswordChangeRequest: (targetUserId, requestedBy, newPasswordHash, callback) => {
+    const sql = `
+      INSERT INTO user_password_change_requests (target_user_id, requested_by, new_password_hash)
+      VALUES (?, ?, ?)
+    `;
+    db.query(sql, [targetUserId, requestedBy, newPasswordHash], callback);
+  },
+
+  listPasswordChangeRequestsForAdmin: (callback) => {
+    const sql = `
+      SELECT
+        upcr.id,
+        upcr.target_user_id,
+        upcr.requested_by,
+        upcr.status,
+        upcr.created_at,
+        upcr.reviewed_at,
+        target.name AS target_name,
+        target.email AS target_email,
+        target.role AS target_role,
+        requester.name AS requester_name,
+        reviewer.name AS reviewer_name
+      FROM user_password_change_requests upcr
+      JOIN users requester ON requester.id = upcr.requested_by
+      LEFT JOIN users target ON target.id = upcr.target_user_id
+      LEFT JOIN users reviewer ON reviewer.id = upcr.reviewed_by
+      ORDER BY
+        CASE upcr.status WHEN 'pending' THEN 0 ELSE 1 END,
+        upcr.created_at DESC
+    `;
+    db.query(sql, callback);
+  },
+
+  listPasswordChangeRequestsForTeacher: (teacherId, callback) => {
+    const sql = `
+      SELECT
+        upcr.id,
+        upcr.target_user_id,
+        upcr.status,
+        upcr.created_at,
+        upcr.reviewed_at,
+        target.name AS target_name,
+        target.email AS target_email,
+        reviewer.name AS reviewer_name
+      FROM user_password_change_requests upcr
+      LEFT JOIN users target ON target.id = upcr.target_user_id
+      LEFT JOIN users reviewer ON reviewer.id = upcr.reviewed_by
+      WHERE upcr.requested_by = ?
+      ORDER BY upcr.created_at DESC
+    `;
+    db.query(sql, [teacherId], callback);
   },
 
   listRemovalRequestsForAdmin: (callback) => {
@@ -162,6 +240,77 @@ const User = {
                 return db.rollback(() => callback(commitErr));
               }
               callback(null, { action: "approved", deletedUserId: request.target_user_id });
+            });
+          });
+        });
+      });
+    });
+  },
+
+  resolvePasswordChangeRequest: (requestId, reviewerId, action, callback) => {
+    db.beginTransaction((beginErr) => {
+      if (beginErr) return callback(beginErr);
+
+      const selectSql = `
+        SELECT upcr.id, upcr.target_user_id, upcr.new_password_hash, upcr.status, u.role AS target_role
+        FROM user_password_change_requests upcr
+        JOIN users u ON u.id = upcr.target_user_id
+        WHERE upcr.id = ? FOR UPDATE
+      `;
+
+      db.query(selectSql, [requestId], (selectErr, rows) => {
+        if (selectErr) {
+          return db.rollback(() => callback(selectErr));
+        }
+
+        if (!rows.length) {
+          return db.rollback(() => callback({ code: "NOT_FOUND" }));
+        }
+
+        const request = rows[0];
+        if (request.status !== "pending") {
+          return db.rollback(() => callback({ code: "ALREADY_RESOLVED" }));
+        }
+
+        const updateRequestSql = `
+          UPDATE user_password_change_requests
+          SET status = ?, reviewed_by = ?, reviewed_at = NOW()
+          WHERE id = ?
+        `;
+
+        db.query(updateRequestSql, [action, reviewerId, requestId], (updateErr) => {
+          if (updateErr) {
+            return db.rollback(() => callback(updateErr));
+          }
+
+          if (action === "rejected") {
+            return db.commit((commitErr) => {
+              if (commitErr) {
+                return db.rollback(() => callback(commitErr));
+              }
+              callback(null, { action: "rejected" });
+            });
+          }
+
+          if (request.target_role !== "student") {
+            return db.rollback(() => callback({ code: "INVALID_TARGET_ROLE" }));
+          }
+
+          const updateUserSql = "UPDATE users SET password = ? WHERE id = ?";
+          db.query(updateUserSql, [request.new_password_hash, request.target_user_id], (userUpdateErr, userResult) => {
+            if (userUpdateErr) {
+              return db.rollback(() => callback(userUpdateErr));
+            }
+
+            if (!userResult.affectedRows) {
+              return db.rollback(() => callback({ code: "TARGET_NOT_FOUND" }));
+            }
+
+            db.commit((commitErr) => {
+              if (commitErr) {
+                return db.rollback(() => callback(commitErr));
+              }
+              callback(null, { action: "approved", targetUserId: request.target_user_id });
             });
           });
         });

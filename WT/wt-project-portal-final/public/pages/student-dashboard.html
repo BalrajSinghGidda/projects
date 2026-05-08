@@ -22,6 +22,17 @@
     </section>
 
     <div class="panel">
+      <h3 class="panel-title">My Account</h3>
+      <input id="my-display-name" placeholder="New display name">
+      <button onclick="updateMyDisplayName()">Update My Name</button>
+
+      <input id="my-current-password" type="password" placeholder="Current password">
+      <input id="my-new-password" type="password" placeholder="New password">
+      <button onclick="changeMyPassword()">Change My Password</button>
+      <p class="subtle" id="my-account-msg"></p>
+    </div>
+
+    <div class="panel">
       <div class="actions">
         <button onclick="loadMyProjects()">My Projects</button>
         <button onclick="loadNotifications()">Notifications</button>

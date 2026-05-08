@@ -217,6 +217,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     loadAllUsers();
     loadRemovalRequests();
+    loadPasswordChangeRequests();
   }
   if (page === "teacher-users.html") {
     if (!currentUser || currentUser.role !== "teacher") {
@@ -225,6 +226,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     loadTeacherStudentUsers();
     loadRemovalRequests();
+    loadPasswordChangeRequests();
   }
   if (page === "project.html") {
     loadDeadlines();
@@ -265,6 +267,72 @@ async function login() {
 async function logout() {
   await fetch(`${API}/auth/logout`, { credentials: "include" });
   window.location.href = "/pages/login.html";
+}
+
+async function updateMyDisplayName() {
+  if (!currentUser) {
+    return;
+  }
+
+  const nameInput = document.getElementById("my-display-name");
+  const msg = document.getElementById("my-account-msg");
+  const name = nameInput?.value?.trim();
+  if (!name) {
+    if (msg) msg.innerText = "Name is required.";
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/users/me/name`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ name })
+    });
+    const data = await res.json();
+    if (msg) msg.innerText = data.message || "Request completed";
+    if (!res.ok) return;
+
+    currentUser.name = name;
+    nameInput.value = "";
+  } catch (err) {
+    console.error(err);
+    if (msg) msg.innerText = "Failed to update name.";
+  }
+}
+
+async function changeMyPassword() {
+  if (!currentUser) {
+    return;
+  }
+
+  const currentPasswordInput = document.getElementById("my-current-password");
+  const newPasswordInput = document.getElementById("my-new-password");
+  const msg = document.getElementById("my-account-msg");
+  const currentPassword = currentPasswordInput?.value;
+  const newPassword = newPasswordInput?.value;
+  if (!currentPassword || !newPassword) {
+    if (msg) msg.innerText = "Current and new password are required.";
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/users/me/password`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+    const data = await res.json();
+    if (msg) msg.innerText = data.message || "Request completed";
+    if (!res.ok) return;
+
+    currentPasswordInput.value = "";
+    newPasswordInput.value = "";
+  } catch (err) {
+    console.error(err);
+    if (msg) msg.innerText = "Failed to update password.";
+  }
 }
 
 // 📁 CREATE PROJECT
@@ -587,7 +655,13 @@ async function loadAllUsers() {
             ${u.email}
           </span>
           ${u.role === "student" || u.role === "teacher"
-            ? `<button class="danger" onclick="removePortalUserAdmin(${u.id})">Remove</button>`
+            ? `
+              <div class="actions">
+                <button class="secondary" onclick="adminUpdateUserName(${u.id})">Edit Name</button>
+                <button class="secondary" onclick="adminUpdateUserPassword(${u.id})">Change Password</button>
+                <button class="danger" onclick="removePortalUserAdmin(${u.id})">Remove</button>
+              </div>
+            `
             : ""}
         </div>
       `).join("");
@@ -596,6 +670,62 @@ async function loadAllUsers() {
     console.error(err);
     const usersList = document.getElementById("users-list");
     if (usersList) usersList.innerText = err.message;
+  }
+}
+
+async function adminUpdateUserName(userId) {
+  if (!currentUser || currentUser.role !== "admin") {
+    return;
+  }
+
+  const name = window.prompt("Enter new display name:");
+  if (!name || !name.trim()) {
+    return;
+  }
+
+  const msg = document.getElementById("admin-user-msg");
+  try {
+    const res = await fetch(`${API}/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ name: name.trim() })
+    });
+    const data = await res.json();
+    if (msg) msg.innerText = data.message || "Request completed";
+    if (!res.ok) return;
+    loadAllUsers();
+  } catch (err) {
+    console.error(err);
+    if (msg) msg.innerText = "Failed to update user name.";
+  }
+}
+
+async function adminUpdateUserPassword(userId) {
+  if (!currentUser || currentUser.role !== "admin") {
+    return;
+  }
+
+  const newPassword = window.prompt("Enter new password:");
+  if (!newPassword) {
+    return;
+  }
+
+  const msg = document.getElementById("admin-user-msg");
+  try {
+    const res = await fetch(`${API}/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ newPassword })
+    });
+    const data = await res.json();
+    if (msg) msg.innerText = data.message || "Request completed";
+    if (!res.ok) return;
+    loadAllUsers();
+  } catch (err) {
+    console.error(err);
+    if (msg) msg.innerText = "Failed to update user password.";
   }
 }
 
@@ -726,7 +856,10 @@ async function loadTeacherStudentUsers() {
           <strong>${u.name}</strong> (${u.role})<br>
           ${u.email}
         </span>
-        <button class="danger" onclick="requestUserRemoval(${u.id})">Request Removal</button>
+        <div class="actions">
+          <button class="secondary" onclick="requestStudentPasswordChange(${u.id})">Request Password Change</button>
+          <button class="danger" onclick="requestUserRemoval(${u.id})">Request Removal</button>
+        </div>
       </div>
     `).join("");
   } catch (err) {
@@ -757,12 +890,41 @@ async function requestUserRemoval(userId) {
     }
 
     loadRemovalRequests();
+    loadPasswordChangeRequests();
     if (currentUser.role === "teacher") {
       loadTeacherStudentUsers();
     }
   } catch (err) {
     console.error(err);
     if (msg) msg.innerText = "Failed to submit removal request.";
+  }
+}
+
+async function requestStudentPasswordChange(userId) {
+  if (!currentUser || currentUser.role !== "teacher") {
+    return;
+  }
+
+  const newPassword = window.prompt("Enter the new password to request for this student:");
+  if (!newPassword) {
+    return;
+  }
+
+  const msg = document.getElementById("teacher-user-msg");
+  try {
+    const res = await fetch(`${API}/users/${userId}/password-change-requests`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ newPassword })
+    });
+    const data = await res.json();
+    if (msg) msg.innerText = data.message || "Request completed";
+    if (!res.ok) return;
+    loadPasswordChangeRequests();
+  } catch (err) {
+    console.error(err);
+    if (msg) msg.innerText = "Failed to submit password change request.";
   }
 }
 
@@ -818,6 +980,56 @@ async function loadRemovalRequests() {
   }
 }
 
+async function loadPasswordChangeRequests() {
+  if (!currentUser || (currentUser.role !== "teacher" && currentUser.role !== "admin")) {
+    return;
+  }
+
+  const containerId = currentUser.role === "admin" ? "admin-password-requests" : "teacher-password-requests";
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  try {
+    const res = await fetch(`${API}/users/password-change-requests`, { credentials: "include" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to load password-change requests");
+
+    if (!data.length) {
+      container.innerHTML = `<div class="item">No password change requests yet.</div>`;
+      return;
+    }
+
+    if (currentUser.role === "admin") {
+      container.innerHTML = data.map((req) => `
+        <div class="item">
+          <strong>${req.target_name || "Deleted User"}</strong> (${req.target_role || "n/a"}) - ${req.target_email || "n/a"}<br>
+          Requested by: ${req.requester_name}<br>
+          Status: <strong>${req.status}</strong>
+          ${req.reviewer_name ? `<br>Reviewed by: ${req.reviewer_name}` : ""}
+          ${req.status === "pending" ? `
+            <div class="actions">
+              <button onclick="reviewPasswordChangeRequest(${req.id}, 'approved')">Approve</button>
+              <button class="danger" onclick="reviewPasswordChangeRequest(${req.id}, 'rejected')">Reject</button>
+            </div>
+          ` : ""}
+        </div>
+      `).join("");
+      return;
+    }
+
+    container.innerHTML = data.map((req) => `
+      <div class="item">
+        <strong>${req.target_name || "Deleted User"}</strong> - ${req.target_email || "n/a"}<br>
+        Status: <strong>${req.status}</strong>
+        ${req.reviewer_name ? `<br>Reviewed by: ${req.reviewer_name}` : ""}
+      </div>
+    `).join("");
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = `<div class="item">Error loading requests: ${err.message}</div>`;
+  }
+}
+
 async function reviewRemovalRequest(requestId, status) {
   if (!currentUser || currentUser.role !== "admin") {
     return;
@@ -842,6 +1054,30 @@ async function reviewRemovalRequest(requestId, status) {
   } catch (err) {
     console.error(err);
     if (msg) msg.innerText = "Failed to review removal request.";
+  }
+}
+
+async function reviewPasswordChangeRequest(requestId, status) {
+  if (!currentUser || currentUser.role !== "admin") {
+    return;
+  }
+
+  const msg = document.getElementById("admin-user-msg");
+  try {
+    const res = await fetch(`${API}/users/password-change-requests/${requestId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ status })
+    });
+    const data = await res.json();
+    if (msg) msg.innerText = data.message || "Request completed";
+    if (!res.ok) return;
+
+    loadPasswordChangeRequests();
+  } catch (err) {
+    console.error(err);
+    if (msg) msg.innerText = "Failed to review password change request.";
   }
 }
 

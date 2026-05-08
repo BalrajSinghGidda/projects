@@ -20,8 +20,19 @@
   <div class="container">
     <section class="page-header">
       <h2 class="page-title">Student Login Users</h2>
-      <p class="subtle">Create students and request removals for admin approval.</p>
+      <p class="subtle">Create students, request student password/removal changes, and manage your account.</p>
     </section>
+
+    <div class="panel">
+      <h3 class="panel-title">My Account</h3>
+      <input id="my-display-name" placeholder="New display name">
+      <button onclick="updateMyDisplayName()">Update My Name</button>
+
+      <input id="my-current-password" type="password" placeholder="Current password">
+      <input id="my-new-password" type="password" placeholder="New password">
+      <button onclick="changeMyPassword()">Change My Password</button>
+      <p class="subtle" id="my-account-msg"></p>
+    </div>
 
     <div class="panel">
       <h3 class="panel-title">Create Student Login</h3>
@@ -38,6 +49,11 @@
     <div class="panel">
       <h3 class="panel-title">My Removal Requests</h3>
       <div id="teacher-removal-requests"></div>
+    </div>
+
+    <div class="panel">
+      <h3 class="panel-title">My Password Change Requests</h3>
+      <div id="teacher-password-requests"></div>
     </div>
 
     <div class="panel">
