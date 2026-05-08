@@ -37,6 +37,17 @@
     </section>
 
     <div class="panel">
+      <h3 class="panel-title">Create Student Login</h3>
+      <input id="teacher-student-name" placeholder="Student full name">
+      <input id="teacher-student-email" placeholder="Student email">
+      <input id="teacher-student-password" type="password" placeholder="Student password">
+      <div class="actions">
+        <button onclick="addTeacherStudentUser()">Add Student</button>
+      </div>
+      <p class="subtle" id="teacher-user-msg"></p>
+    </div>
+
+    <div class="panel">
       <div class="actions">
         <button onclick="loadAllProjects()">All Projects</button>
         <button onclick="loadAbsences()">Absence Queue</button>

@@ -27,6 +27,11 @@ const User = {
 
     sql += " ORDER BY name ASC";
     db.query(sql, params, callback);
+  },
+
+  deleteById: (id, callback) => {
+    const sql = "DELETE FROM users WHERE id = ?";
+    db.query(sql, [id], callback);
   }
 };
 

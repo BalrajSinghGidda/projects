@@ -565,9 +565,14 @@ async function loadAllUsers() {
     const output = document.getElementById("output");
     if (output) {
       output.innerHTML = data.map((u) => `
-        <div class="item">
-          <strong>${u.name}</strong> (${u.role})<br>
-          ${u.email}
+        <div class="item item-row">
+          <span>
+            <strong>${u.name}</strong> (${u.role})<br>
+            ${u.email}
+          </span>
+          ${u.role === "student" || u.role === "teacher"
+            ? `<button class="danger" onclick="removePortalUser(${u.id})">Remove</button>`
+            : ""}
         </div>
       `).join("");
     }
@@ -575,6 +580,114 @@ async function loadAllUsers() {
     console.error(err);
     const output = document.getElementById("output");
     if (output) output.innerText = err.message;
+  }
+}
+
+async function addAdminManagedUser() {
+  if (!currentUser || currentUser.role !== "admin") {
+    return;
+  }
+
+  const name = document.getElementById("admin-user-name")?.value?.trim();
+  const email = document.getElementById("admin-user-email")?.value?.trim();
+  const password = document.getElementById("admin-user-password")?.value;
+  const role = document.getElementById("admin-user-role")?.value;
+  const msg = document.getElementById("admin-user-msg");
+
+  if (!name || !email || !password || !role) {
+    if (msg) msg.innerText = "All fields are required.";
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/users`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ name, email, password, role })
+    });
+    const data = await res.json();
+    if (msg) msg.innerText = data.message || "Request completed";
+    if (!res.ok) {
+      return;
+    }
+
+    document.getElementById("admin-user-name").value = "";
+    document.getElementById("admin-user-email").value = "";
+    document.getElementById("admin-user-password").value = "";
+    document.getElementById("admin-user-role").value = "student";
+    loadAllUsers();
+    loadDashboardStats();
+  } catch (err) {
+    console.error(err);
+    if (msg) msg.innerText = "Failed to create user.";
+  }
+}
+
+async function addTeacherStudentUser() {
+  if (!currentUser || currentUser.role !== "teacher") {
+    return;
+  }
+
+  const name = document.getElementById("teacher-student-name")?.value?.trim();
+  const email = document.getElementById("teacher-student-email")?.value?.trim();
+  const password = document.getElementById("teacher-student-password")?.value;
+  const msg = document.getElementById("teacher-user-msg");
+
+  if (!name || !email || !password) {
+    if (msg) msg.innerText = "All fields are required.";
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/users`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ name, email, password, role: "student" })
+    });
+    const data = await res.json();
+    if (msg) msg.innerText = data.message || "Request completed";
+    if (!res.ok) {
+      return;
+    }
+
+    document.getElementById("teacher-student-name").value = "";
+    document.getElementById("teacher-student-email").value = "";
+    document.getElementById("teacher-student-password").value = "";
+  } catch (err) {
+    console.error(err);
+    if (msg) msg.innerText = "Failed to create student user.";
+  }
+}
+
+async function removePortalUser(userId) {
+  if (!currentUser || currentUser.role !== "admin") {
+    return;
+  }
+
+  const confirmDelete = window.confirm("Delete this login user?");
+  if (!confirmDelete) {
+    return;
+  }
+
+  const msg = document.getElementById("admin-user-msg");
+  try {
+    const res = await fetch(`${API}/users/${userId}`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+    const data = await res.json();
+    if (msg) msg.innerText = data.message || "Request completed";
+    if (!res.ok) {
+      return;
+    }
+
+    loadAllUsers();
+    loadDashboardStats();
+  } catch (err) {
+    console.error(err);
+    if (msg) msg.innerText = "Failed to delete user.";
   }
 }
 
