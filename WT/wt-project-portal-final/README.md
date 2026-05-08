@@ -1,4 +1,4 @@
-# WT Project Portal
+# NexusEdu
 
 A comprehensive web-based project and viva management system designed for
 educational institutions. This portal enables students, teachers, and
@@ -7,7 +7,7 @@ absence requests, and communicate through real-time notifications.
 
 ## Overview
 
-The WT Project Portal is a full-stack web application that streamlines the
+NexusEdu is a full-stack web application that streamlines the
 academic project management workflow with role-based access control, real-time
 updates, and intuitive user interfaces for students, teachers, and
 administrators.
@@ -45,7 +45,7 @@ administrators.
 ## 📁 Project Structure
 
 ```
-wt-project-portal-final/
+nexusedu/
 ├── server/
 │   ├── app.js                      # Main application entry point
 │   ├── config/
@@ -115,7 +115,7 @@ wt-project-portal-final/
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd wt-project-portal-final
+   cd nexusedu
    ```
 
 2. **Install dependencies**

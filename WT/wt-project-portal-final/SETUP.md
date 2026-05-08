@@ -1,4 +1,4 @@
-# 🚀 WT Project Portal - Setup Guide
+# 🚀 NexusEdu - Setup Guide
 
 ## ✅ Current Configuration
 
@@ -143,7 +143,7 @@ mysql -u connectBase -pconnectBase wt_portal -e \
 ## 📁 Project Structure
 
 ```
-wt-project-portal-final/
+nexusedu/
 ├── server/
 │   ├── app.js              # Main server file
 │   ├── config/             # Database & session config

@@ -1,4 +1,4 @@
--- WT Portal Database Schema
+-- NexusEdu Database Schema
 -- Run this to create all required tables
 
 CREATE DATABASE IF NOT EXISTS wt_portal;

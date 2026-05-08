@@ -4,7 +4,8 @@ const ROLE_DASHBOARD = {
   teacher: "/pages/teacher-dashboard.html",
   admin: "/pages/admin-dashboard.html"
 };
-const THEME_STORAGE_KEY = "wt-portal-theme";
+const THEME_STORAGE_KEY = "nexusedu-theme";
+const BRAND_NAME = "NexusEdu";
 
 let currentProjectId = null;
 let currentUser = null;
@@ -49,6 +50,49 @@ function ensureThemeToggle() {
     btn.classList.add("floating-theme-toggle");
     document.body.appendChild(btn);
   }
+}
+
+function ensureBrandLogo() {
+  const nav = document.querySelector("nav");
+  if (nav) {
+    if (nav.querySelector(".brand-home-link")) {
+      return;
+    }
+
+    const brandLink = document.createElement("a");
+    brandLink.href = "/pages/dashboard.html";
+    brandLink.className = "brand-home-link";
+    brandLink.setAttribute("aria-label", `${BRAND_NAME} Home`);
+
+    const logo = document.createElement("img");
+    logo.src = "/logo.png";
+    logo.alt = `${BRAND_NAME} Logo`;
+    logo.className = "brand-logo-nav";
+
+    brandLink.appendChild(logo);
+    nav.insertBefore(brandLink, nav.firstChild);
+    return;
+  }
+
+  if (document.querySelector(".brand-standalone")) {
+    return;
+  }
+
+  const container = document.querySelector(".container");
+  if (!container) {
+    return;
+  }
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "brand-standalone";
+
+  const logo = document.createElement("img");
+  logo.src = "/logo.png";
+  logo.alt = `${BRAND_NAME} Logo`;
+  logo.className = "brand-logo-standalone";
+
+  wrapper.appendChild(logo);
+  container.parentNode.insertBefore(wrapper, container);
 }
 
 function dashboardPathByRole(role) {
@@ -168,6 +212,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const page = path.split("/").pop();
   const initialTheme = resolveTheme();
 
+  ensureBrandLogo();
   applyTheme(initialTheme);
   ensureThemeToggle();
   applyTheme(initialTheme);
